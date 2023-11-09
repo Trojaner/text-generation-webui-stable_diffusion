@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Text Generation WebUI",
+            "type": "python",
+            "request": "launch",
+            "program": "server.py",
+            "cwd": "${workspaceFolder}/../..",
+            "args": [
+                "--listen",
+                "--listen-port=7862",
+                "--verbose",
+                "--settings=extensions/stable_diffusion/settings.debug.yaml",
+                "--model",
+                "mistral-7b-instruct-v0.1.Q5_K_M.gguf"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}

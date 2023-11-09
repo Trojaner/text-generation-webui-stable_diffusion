@@ -1,0 +1,6 @@
+webuiapi
+mypy
+pylint
+Pillow
+types-Pillow
+types-requests
