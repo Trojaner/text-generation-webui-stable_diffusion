@@ -21,9 +21,10 @@ Demo:
 - [FaceSwapLab](https://github.com/glucauze/sd-webui-faceswaplab)
 
 ## Installation
-- Open command prompt / terminal inside the text-generation-webui directory or navigate to it with `cd`. 
+- Open a shell inside the text-generation-webui root directory. 
 - Run `git clone https://github.com/Trojaner/text-generation-webui-stable_diffusion extensions/stable_diffusion`.
-- Open the `settings.debug.yaml` file and adjust the settings to your liking.
+- Open the [settings.debug.yaml](https://github.com/Trojaner/text-generation-webui-stable_diffusion/blob/main/settings.debug.yaml) file, copy the extension related settings to your own settings.json and adjust them to your own preferences.
+- Add `stable_diffusion` to the enabled extensions.
 
 > **Note**
 > If you install this extension manually, make sure the extension directory is called stable_diffusion. 
@@ -38,6 +39,7 @@ text-generation-webui, Visual Studio Code and Python 3.10 are required for devel
 - Start Visual Studio Code and open the stable_diffusion directory, then trust the repository if it asks you for it.
 - Install the [recommended extensions](https://github.com/Trojaner/text-generation-webui-stable_diffusion/blob/main/.vscode/extensions.json) as they are required for code completion, linting and auto formatting.
 - Adjust `.vscode/launch.json` to use your preferred model for debugging or install the default model [mistral-7b-instruct-v0.1.Q5_K_M.gguf](https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/blob/main/mistral-7b-v0.1.Q5_K_M.gguf) instead.
+- Adjust `settings.debug.yaml` if needed. These settings will be used during debugging.
 - Once you want to test your changes, hit F5 (*Start Debugging*) to debug text-generation-webui with this extension pre-installed and with the `settings.debug.yaml` file as the settings file. You can also use Ctrl + Shift + F5 (*Restart Debugging*) to apply any changes you made to the code by restarting the server from scratch. Checkout [Key Bindings for Visual Studio Code](https://code.visualstudio.com/docs/getstarted/keybindings) for more shortcuts.  
 - Be sure to check out the [Contribution Guidelines](#contribution-guidelines) below before submitting a pull request.
 
