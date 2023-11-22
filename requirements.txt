@@ -4,3 +4,4 @@ pylint
 Pillow
 types-Pillow
 types-requests
+stringcase

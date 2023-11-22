@@ -139,3 +139,7 @@ class SdWebUIApi(WebUIApi):
             payload,
             use_async,
         )
+
+    def refresh_vaes(self) -> Any:
+        response = self.session.post(url=f"{self.baseurl}/refresh-vaes")
+        return response.json()

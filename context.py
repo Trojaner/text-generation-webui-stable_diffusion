@@ -7,9 +7,9 @@ from .sd_client import SdWebUIApi
 
 @dataclass
 class GenerationContext(object):
-    input_text: str | None
     params: StableDiffusionWebUiExtensionParams
     sd_client: SdWebUIApi
+    input_text: str | None = None
     output_text: str | None = None
     is_completed: bool = False
     state: dict | None = None

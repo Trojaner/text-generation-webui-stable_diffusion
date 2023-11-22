@@ -1,7 +1,8 @@
 import base64
-from dataclasses import dataclass, field
+from dataclasses import MISSING, dataclass, field, fields
 from enum import Enum
 import requests
+from typing_extensions import Self
 
 default_description_prompt = """
 You are now a text generator for the Stable Diffusion AI image generator. You will generate a text prompt for it.
@@ -18,6 +19,14 @@ class TriggerMode(str, Enum):
     INTERACTIVE = "interactive"
     MANUAL = "manual"
 
+    @classmethod
+    def index_of(cls, mode: Self) -> int:
+        return list(TriggerMode).index(mode)
+
+    @classmethod
+    def from_index(cls, index: int) -> Self:
+        return list(TriggerMode)[index]  # type: ignore
+
     def __str__(self) -> str:
         return self.value
 
@@ -25,7 +34,7 @@ class TriggerMode(str, Enum):
 @dataclass
 class ExtensionParams:
     display_name: str = field(default="Stable Diffusion")
-    is_tab: bool = field(default=False)
+    is_tab: bool = field(default=True)
 
 
 @dataclass
@@ -102,6 +111,25 @@ class StableDiffusionWebUiExtensionParams(
     UserPreferencesParams,
     FaceSwapLabParams,
 ):
+    def update(self, params: Self) -> None:
+        """
+        Updates the parameters.
+        """
+
+        for f in fields(self):
+            val = getattr(params, f.name)
+
+            if val == f.default or val == MISSING:
+                continue
+
+            if f.default_factory != MISSING:
+                if val == f.default_factory():
+                    continue
+
+            setattr(self, f.name, val)
+
+        self.normalize()
+
     def normalize(self) -> None:
         """
         Normalizes the parameters. This should be called after changing any parameters.
