@@ -35,18 +35,21 @@ stable_diffusion-api_password: ""
 stable_diffusion-default_prompt: "an adult female, close up, upper body, highlights in hair, brown eyes, wearing casual clothes, side light"
 stable_diffusion-base_prompt_suffix: "high resolution, detailed, realistic, vivid"
 stable_diffusion-base_negative_prompt: "ugly, disformed, disfigured, immature"
-stable_diffusion-sampler_name: "UniPC"
-stable_diffusion-sampling_steps: 15
+stable_diffusion-sampler_name: "DPM SDE"
+stable_diffusion-sampling_steps: 7
 stable_diffusion-denoising_strength: 0.7
-stable_diffusion-width: 512
-stable_diffusion-height: 512
-stable_diffusion-cfg_scale: 7
+stable_diffusion-width: 1024
+stable_diffusion-height: 1024
+stable_diffusion-cfg_scale: 2
 stable_diffusion-clip_skip: 1
 stable_diffusion-seed: -1
 
 #------------------#
 # USER PREFERENCES #
 #------------------#
+
+## Sets if debug mode (e.g. for additional logs) should be enabled
+stable_diffusion-debug_mode_enabled: true
 
 ## Sets if generated images should be saved to the "outputs" folder inside the stable_diffusion extension directory.
 stable_diffusion-save_images: true
@@ -57,23 +60,39 @@ stable_diffusion-save_images: true
 ##  - "manual": Generates images only if the image generation button was pressed. (WIP, not implemented yet)
 stable_diffusion-trigger_mode: "interactive"
 
-## Defines the trigger pattern to use for generating images in text mode.
-stable_diffusion-interactive_mode_trigger_regex: "(?aims)(send|mail|message|me)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?\\b"
+## Defines the pattern for the input message which triggers image generation in interactive mode.
+stable_diffusion-interactive_mode_input_trigger_regex: "(?aims)(send|mail|message|me)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?\\b"
 
-## Defines the subject of the message to generate images for in text mode.
+## Set's how the base prompt for image generation should be generated. Possible values:
+##  - "default_prompt": Uses the default_prompt option as a static prompt ignoring any chat context.
+##  - "generated_text": Uses the generated output as-is as prompt.
+##  - "dynamic": Uses a dynamic prompt using the subject_regex, default_subject and description_prompt options.
+## The result is combined with the base_prompt_suffix and base_negative_prompt options.
+stable_diffusion-interactive_mode_prompt_generation_mode: "dynamic"
+
+## Defines how to extract the subject of the input message for dynamic prompt generation in interactive mode.
+## Only used when prompt_generation_mode is set to "dynamic".
 stable_diffusion-interactive_mode_subject_regex: ".*\\s+of\\s+(.*)[\\.,!?]?"
 
-## The prompt to trigger a description of the subject.
+## Sets the default subject to use instead if no subject was found in the input message using the subject_regex option.
+## Only used when prompt_generation_mode is set to "dynamic".
+stable_diffusion-interactive_mode_default_subject: "your appearance, your surroundings and what you are doing right now"
+
+## The text to use for generating a stable diffusion compatible description of the given subject. Replaces the original input message.
+## Only used when prompt_generation_mode is set to "dynamic".
 stable_diffusion-interactive_mode_description_prompt: >
   You are now a text generator for the Stable Diffusion AI image generator. You will generate a text prompt for it.
 
   Describe [subject] using comma-separated tags only. Do not use sentences.
   Include many tags such as tags for the environment, gender, clothes, age, location, light, daytime, angle, pose, etc.
 
-  Do not write anything else. Do not ask any questions. Do not talk.
+  Very important: only write the comma-separated tags. Do not write anything else. Do not ask any questions. Do not talk.
 
-## The default subject to use if no subject was found in the message.
-stable_diffusion-interactive_mode_default_subject: "your appearance, your surroundings and what you are doing right now"
+## Set's how the base prompt for image generation should be generated. Possible values:
+##  - "default_prompt": Uses the default_prompt option as a static prompt ignoring any chat context.
+##  - "generated_text": Uses the generated output as-is as prompt.
+## The result is combined with the base_prompt_suffix and base_negative_prompt options.
+stable_diffusion-continuous_mode_prompt_generation_mode: "generated_text"
 
 ## If enabled, will automatically unload the LLM model from VRAM and then load the SD model instead when generating images.
 ## After the image is generated, it will unload the SD model again and then reload the LLM model.
@@ -97,28 +116,21 @@ stable_diffusion-upscaling_upscaler: "RealESRGAN 4x+"
 ## Amount to upscale by (1 = 100%, 2 = 200%, etc.).
 stable_diffusion-upscaling_scale: 2
 
-## Sets if faces should be enhanced in generated images.
+## Sets if faces should be enhanced (or "restored") in generated images.
 stable_diffusion-enhance_faces_enabled: false
 
 #-------------#
 # FACESWAPLAB #
 #-------------#
 
-## Face swapping using FaceSwapLab.
+## Apply face swapping using FaceSwapLab.
 ## Requires the sd-webui-faceswaplab extension to be installed.
 ## Repository: https://github.com/glucauze/sd-webui-faceswaplab
 
 ## Sets if faces should be swapped in generated images.
-stable_diffusion-faceswaplab_enabled: true
+stable_diffusion-faceswaplab_enabled: false
 
-## Only swap faces if same gender.
-stable_diffusion-faceswaplab_same_gender_only: true
-
-## If enabled, order source faces by size and swap biggest.
-## Otherwise, order source faces from left to right and swap first face.
-stable_diffusion-faceswaplab_sort_by_size: true
-
-## Sets the source face to use for face swapping.
+## Sets the source image with the face to use for face swapping.
 ## It's possible to set it in 3 ways:
 ##   1. Local file: "file:///./example.jpg"
 ##   2. URL: "https://some-site.com/example.png"
@@ -127,13 +139,55 @@ stable_diffusion-faceswaplab_sort_by_size: true
 ##      See https://github.com/glucauze/sd-webui-faceswaplab#build-and-use-checkpoints- for more on how to create face checkpoints.
 stable_diffusion-faceswaplab_source_face: "file:///./extensions/stable_diffusion/assets/example_face.jpg"
 
-## Use the nth face in the source image as source face
+## Only swap faces if same gender.
+stable_diffusion-faceswaplab_same_gender_only: true
+
+## If enabled, order source faces by size.
+## Otherwise, order source faces from left to right.
+stable_diffusion-faceswaplab_sort_by_size: true
+
+## Use the nth face in the source face image as reference face
+## Note: the first face is 0, the second face is 1, etc.
+##
+## Example:
+## If you have 3 faces in the source image and set this to 1, it will use the second face from left to right if sort_by_size is set to false.
+## If sort_by_size is true, it will use the second largest face instead.
 stable_diffusion-faceswaplab_source_face_index: 0
 
-## Sets if the face should be enhanced after swapping
-stable_diffusion-faceswaplab_enhance_face_enabled: true
+## Use the nth face in the generated image as the face to swap out
+## See source_face_index for more info
+stable_diffusion-faceswaplab_target_face_index: 0
 
-## Model to use for restoring the face (CodeFormer, GFPGAN)
+## Sets if the face should be upscaled
+stable_diffusion-faceswaplab_upscaling_enabled: false
+
+## Sets the upscaler to use for upscaling faces
+## Some examples are: Latent, LDSR, RealESRGAN 4x+, Lanczos, Nearest, etc.
+stable_diffusion-faceswaplab_upscaling_upscaler: "RealESRGAN 4x+"
+
+## Amount to upscale the face by (1 = 100%, 2 = 200%, etc.)
+stable_diffusion-faceswaplab_upscaling_scale: 2
+
+## Visibility of the upscaled face (0.0 - 1.0)
+stable_diffusion-faceswaplab_upscaling_visibility: 1
+
+## Sets if the final result should be upscaled
+stable_diffusion-faceswaplab_postprocessing_upscaling_enabled: false
+
+## Sets the upscaler to use for upscaling final result image after swapping
+## Some examples are: Latent, LDSR, RealESRGAN 4x+, Lanczos, Nearest, etc.
+stable_diffusion-faceswaplab_postprocessing_upscaling_upscaler: "RealESRGAN 4x+"
+
+## Amount to upscale the final result by (1 = 100%, 2 = 200%, etc.)
+stable_diffusion-faceswaplab_postprocessing_upscaling_scale: 2
+
+## Visibility of the final result upscale (0.0 - 1.0)
+stable_diffusion-faceswaplab_postprocessing_upscaling_visibility: 1
+
+## Sets if the face should be enhanced (or "restored") during swapping
+stable_diffusion-faceswaplab_enhance_face_enabled: false
+
+## Model to use for enhancing the face (CodeFormer, GFPGAN)
 stable_diffusion-faceswaplab_enhance_face_model: "CodeFormer"
 
 ## Visibility of the enhanced face (0.0 - 1.0)
@@ -142,5 +196,107 @@ stable_diffusion-faceswaplab_enhance_face_visibility: 1
 ## Weight of the CodeFormer model (0.0 - 1.0)
 stable_diffusion-faceswaplab_enhance_face_codeformer_weight: 1
 
-## Use the nth face in the target image as target face
-stable_diffusion-faceswaplab_target_face_index: 0
+## Sets if the faces should be enhanced (or "restored") in the final result image after swapping
+stable_diffusion-faceswaplab_postprocessing_enhance_face_enabled: false
+
+## Model to use for restoring the faces (CodeFormer, GFPGAN)
+stable_diffusion-faceswaplab_postprocessing_enhance_face_model: "CodeFormer"
+
+## Visibility of the enhanced faces (0.0 - 1.0)
+stable_diffusion-faceswaplab_postprocessing_enhance_face_visibility: 1
+
+## Weight of the CodeFormer model (0.0 - 1.0)
+stable_diffusion-faceswaplab_postprocessing_enhance_face_codeformer_weight: 1
+
+## Sets if color corrections should be applied
+stable_diffusion-faceswaplab_color_corrections_enabled: false
+
+## Sets the erosion factor for the mask
+stable_diffusion-faceswaplab_mask_erosion_factor: 1
+
+## Use improved segmented mask (use pastenetto mask only the face )
+## Note: you should enable upscaling if you enable this option
+stable_diffusion-faceswaplab_mask_improved_mask_enabled: false
+
+## Sharpen the face
+stable_diffusion-faceswaplab_sharpen_face: false
+
+## Sets if faces should be blended in generated images
+stable_diffusion-faceswaplab_blend_faces: true
+
+#---------#
+# ReActor #
+#---------#
+
+## Apply face swapping using ReActor.
+## Requires the sd-webui-reactor extension to be installed.
+## Repository: https://github.com/Gourieff/sd-webui-reactor
+
+## Sets if faces should be swapped in generated images.
+stable_diffusion-reactor_enabled: true
+
+## Sets the source image with the face to use for face swapping.
+## It's possible to set it in 3 ways:
+##   1. Local file: "file:///./example.jpg"
+##   2. URL: "https://some-site.com/example.png"
+##   3. (recommended) ReActor face model: "checkpoint://example"
+##      You can see the list of available checkpoints in the "models/reactor/faces" directory inside your Stable Diffusion WebUI directory.
+stable_diffusion-reactor_source_face: "file:///./extensions/stable_diffusion/assets/example_face.jpg"
+
+## Sets the gender for the face in the source image (supported values: none, male, female)
+## In other words, will only use the face with this gender as source face
+stable_diffusion-reactor_source_gender: "none"
+
+## Sets which gender to target in the generated image for swapping (supported values: none, male, female)
+## In other words, will only swap a face of this gender
+stable_diffusion-reactor_target_gender: "none"
+
+## Use the nth face in the source face image as reference face
+## Note: the first face is 0, the second face is 1, etc.
+##
+## Example:
+## If you have 3 faces in the source image and set this to 1, it will use the second face from left to right and top to bottom.
+stable_diffusion-reactor_source_face_index: 0
+
+## Use the nth face in the generated image as the face to swap out
+## See source_face_index for more info
+stable_diffusion-reactor_target_face_index: 0
+
+## Sets if the face should be enhanced (or "restored") after swapping
+stable_diffusion-reactor_enhance_face_enabled: false
+
+## Model to use for restoring the face (CodeFormer, GFPGAN)
+stable_diffusion-reactor_enhance_face_model: "CodeFormer"
+
+## Visibility of the enhanced face (0.0 - 1.0)
+stable_diffusion-reactor_enhance_face_visibility: 1
+
+## Weight of the CodeFormer model (0.0 - 1.0)
+stable_diffusion-reactor_enhance_face_codeformer_weight: 1
+
+## Upscale face first before enhancing it; otherwise enhances face first then upscales it instead
+stable_diffusion-reactor_enhance_face_upscale_first: false
+
+## Sets if the face should be upscaled.
+stable_diffusion-reactor_upscaling_enabled: false
+
+## Sets the upscaler to use for upscaling faces.
+## Some examples are: Latent, LDSR, RealESRGAN 4x+, Lanczos, Nearest, etc.
+stable_diffusion-reactor_upscaling_upscaler: "RealESRGAN 4x+"
+
+## Amount to upscale the face by (1 = 100%, 2 = 200%, etc.).
+stable_diffusion-reactor_upscaling_scale: 2
+
+## Visibility of the upscaled face (0.0 - 1.0)
+stable_diffusion-reactor_upscaling_visibility: 1
+
+## Sets if face mask correction should be enabled to fix pixelation around face contours
+stable_diffusion-reactor_mask_face: false
+
+## Model to use for swapping faces
+stable_diffusion-reactor_model: "inswapper_128.onnx"
+
+## Device to use for swapping faces (CPU, CUDA).
+## CUDA recommended for faster inference if you have an NVIDIA GPU.
+## Note: CUDA requires installation of the onnxruntime-gpu package instead of onnxruntime in stable-diffusion-webui
+stable_diffusion-reactor_device: "CPU"

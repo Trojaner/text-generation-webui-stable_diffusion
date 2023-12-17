@@ -19,12 +19,14 @@ Demo:
 
 ## Supported Stable Diffusion WebUI Extensions
 - [FaceSwapLab](https://github.com/glucauze/sd-webui-faceswaplab)
+- [ReActor](https://github.com/Gourieff/sd-webui-reactor)
 
 ## Installation
-- Open a shell inside the text-generation-webui root directory. 
+- Open a shell with cmd_linux.sh/cmd_macos.sh/cmd_windows.bat inside text-generation-webui folder. 
 - Run `git clone https://github.com/Trojaner/text-generation-webui-stable_diffusion extensions/stable_diffusion`.
-- Open the [settings.debug.yaml](https://github.com/Trojaner/text-generation-webui-stable_diffusion/blob/main/settings.debug.yaml) file, copy the extension related settings to your own settings.json and adjust them to your own preferences.
-- Add `stable_diffusion` to the enabled extensions.
+- Run `pip install -r extensions/stable_diffusion/requirements.txt` to install the required dependencies.	
+- Open the [settings.debug.yaml](https://github.com/Trojaner/text-generation-webui-stable_diffusion/blob/main/settings.debug.yaml) file, copy the extension related settings to your own settings.json in the text-generation-webui directory.
+- Add `stable_diffusion` to the enabled extensions in settings.json.
 
 > **Note**
 > If you install this extension manually, make sure the extension directory is called stable_diffusion. 
@@ -54,17 +56,16 @@ text-generation-webui, Visual Studio Code and Python 3.10 are required for devel
 - Last but not least, ensure that you do not accidentally commit changes you might have made to the `settings.debug.yaml` or `launch.json` files unless intentional.
 
 ## Ethical Guidelines
-This extension integrates with the FaceSwapLab extension for stable-diffusion-webui and hence allows to swap faces in the generated images. This extension is not intended to for the creation of non-consensual deepfake content. Please use this extension responsibly and do not use it to create such content. The main purpose of the face swapping functionality is to allow the creation of consistent images of text-generation-webui characters. If you are unsure whether your use case is ethical, please refrain from using this extension.
+This extension integrates with various face swap extensions for stable-diffusion-webui and hence allows to swap faces in the generated images. This extension is not intended to for the creation of non-consensual deepfake content. Please use this extension responsibly and do not use it to create such content. The main purpose of the face swapping functionality is to allow the creation of consistent images of text-generation-webui characters. If you are unsure whether your use case is ethical, please refrain from using this extension.
 
 The maintainers and contributors of this extension cannot be held liable for any misuse of this extension but will try to prevent such misuse by all means.
 
 ## Todo
-- Some basic Gradio UI for fine-tuning the extension parameters at runtime
+- ~~Some basic Gradio UI for fine-tuning the extension parameters at runtime~~
+- ~~Support [ReActor](https://github.com/Gourieff/sd-webui-reactor) as alternative faceswap integration [[api implementation](https://github.com/Gourieff/sd-webui-reactor/blob/main/scripts/reactor_api.py)]~~ 
 - Character specific parameters
 - Custom LogitsProcessor or grammar implementation for generating proper and weighted SD image generation prompts
-- Support [ReActor](https://github.com/Gourieff/sd-webui-reactor) as alternative faceswap integration [[api implementation](https://github.com/Gourieff/sd-webui-reactor/blob/main/scripts/reactor_api.py)] 
 - Test with vanilla AUTOMATIC1111
-- Standalone mode using diffusers and without stable-diffusion-webui
 - Integrate with other SD extensions / scripts?
 
 ## See also

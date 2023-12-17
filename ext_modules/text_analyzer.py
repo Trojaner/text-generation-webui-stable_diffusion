@@ -9,7 +9,7 @@ def try_get_description_prompt(
     Checks if the given message contains any triggers and returns the prompt if it does.
     """
 
-    trigger_regex = params.interactive_mode_trigger_regex
+    trigger_regex = params.interactive_mode_input_trigger_regex
     subject_regex = params.interactive_mode_subject_regex
     default_subject = params.interactive_mode_default_subject
     default_description_prompt = params.interactive_mode_description_prompt

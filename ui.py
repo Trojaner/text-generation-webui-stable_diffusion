@@ -5,6 +5,10 @@ from modules.logging_colors import logger
 from modules.ui import refresh_symbol
 from .context import GenerationContext
 from .ext_modules.vram_manager import VramReallocationTarget, attempt_vram_reallocation
+from .params import (
+    ContinuousModePromptGenerationMode,
+    InteractiveModePromptGenerationMode,
+)
 from .params import StableDiffusionWebUiExtensionParams as Params
 from .params import TriggerMode
 from .sd_client import SdWebUIApi
@@ -44,7 +48,8 @@ def render_ui(params: Params) -> None:
 
     with gr.Row():
         _render_chat_config(params)
-        _render_faceswap_config(params)
+        _render_faceswaplab_config(params)
+        _render_reactor_config(params)
 
 
 def _render_connection_details(params: Params) -> None:
@@ -358,8 +363,10 @@ def _render_generation_parameters(params: Params) -> None:
             )
 
 
-def _render_faceswap_config(params: Params) -> None:
-    with gr.Accordion("Faceswap", open=True, visible=sd_connected) as faceswap_config:
+def _render_faceswaplab_config(params: Params) -> None:
+    with gr.Accordion(
+        "FaceSwapLab", open=True, visible=sd_connected
+    ) as faceswap_config:
         connect_listeners.append(faceswap_config)
 
         with gr.Column():
@@ -390,23 +397,99 @@ def _render_faceswap_config(params: Params) -> None:
             )
 
 
+def _render_reactor_config(params: Params) -> None:
+    with gr.Accordion("ReActor", open=True, visible=sd_connected) as reactor_config:
+        connect_listeners.append(reactor_config)
+
+        with gr.Column():
+            reactor_enabled = gr.Checkbox(
+                label="Enabled", value=lambda: params.reactor_enabled
+            )
+
+            reactor_enabled.change(
+                lambda new_enabled: params.update(Params(reactor_enabled=new_enabled)),
+                reactor_enabled,
+                None,
+            )
+
+            reactor_source_face = gr.Text(
+                label="Source face",
+                placeholder="See documentation for details...",
+                value=lambda: params.reactor_source_face,
+            )
+
+            reactor_source_face.change(
+                lambda new_source_face: params.update(
+                    Params(reactor_source_face=new_source_face)
+                ),
+                reactor_source_face,
+                None,
+            )
+
+
 def _render_chat_config(params: Params) -> None:
     with gr.Accordion("Chat Settings", open=True, visible=sd_connected) as chat_config:
         connect_listeners.append(chat_config)
 
-        with gr.Row():
-            mode = gr.Dropdown(
-                label="Trigger mode",
-                choices=[sentencecase(mode.value) for mode in TriggerMode],
+        with gr.Column():
+            trigger_mode = gr.Dropdown(
+                label="Image generation trigger mode",
+                choices=[sentencecase(mode) for mode in TriggerMode],
                 value=lambda: sentencecase(params.trigger_mode),
                 type="index",
             )
 
-            mode.change(
+            trigger_mode.change(
                 lambda index: params.update(
                     Params(trigger_mode=TriggerMode.from_index(index))
                 ),
-                mode,
+                trigger_mode,
+                None,
+            )
+
+            interactive_prompt_generation_mode = gr.Dropdown(
+                label="Interactive mode prompt generation mode",
+                choices=[
+                    sentencecase(mode) for mode in InteractiveModePromptGenerationMode
+                ],
+                value=lambda: sentencecase(
+                    params.interactive_mode_prompt_generation_mode
+                ),
+                type="index",
+            )
+
+            interactive_prompt_generation_mode.change(
+                lambda index: params.update(
+                    Params(
+                        interactive_mode_prompt_generation_mode=InteractiveModePromptGenerationMode.from_index(  # noqa: E501
+                            index
+                        )
+                    )
+                ),
+                interactive_prompt_generation_mode,
+                None,
+            )
+
+            continuous_prompt_generation_mode = gr.Dropdown(
+                label="Continous mode prompt generation mode",
+                choices=[
+                    sentencecase(mode) for mode in ContinuousModePromptGenerationMode
+                ],
+                value=lambda: sentencecase(
+                    params.continuous_mode_prompt_generation_mode
+                ),
+                type="index",
+            )
+
+            continuous_prompt_generation_mode.change(
+                lambda index: params.update(
+                    Params(
+                        continuous_mode_prompt_generation_mode=ContinuousModePromptGenerationMode.from_index(  # noqa: E501
+                            index
+                        )
+                    )
+                ),
+                continuous_prompt_generation_mode,
                 None,
             )
 

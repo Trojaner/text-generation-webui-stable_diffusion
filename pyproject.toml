@@ -1,6 +1,6 @@
 [project]
 name = "stable_diffusion"
-version = "1.0"
+version = "1.1"
 authors = [{ name = "Enes Sadık Özbek", email = "es.ozbek@outlook.com" }]
 description = "Stable Diffusion integration for text-generation-webui"
 readme = { file = "README.md", content-type = "text/markdown" }

@@ -3,18 +3,17 @@ from typing import Any, List
 from modules import shared
 from modules.logging_colors import logger
 from .context import GenerationContext, get_current_context, set_current_context
-from .ext_modules.image_generator import (
-    description_to_prompt,
-    generate_html_images_for_context,
-)
+from .ext_modules.image_generator import generate_html_images_for_context
 from .ext_modules.text_analyzer import try_get_description_prompt
-from .params import StableDiffusionWebUiExtensionParams, TriggerMode
+from .params import (
+    InteractiveModePromptGenerationMode,
+    StableDiffusionWebUiExtensionParams,
+    TriggerMode,
+)
 from .sd_client import SdWebUIApi
 from .ui import render_ui
 
 ui_params: Any = StableDiffusionWebUiExtensionParams()
-ui_params.normalize()
-
 params = asdict(ui_params)
 
 context: GenerationContext | None = None
@@ -23,7 +22,7 @@ picture_processing_message = "*Is sending a picture...*"
 default_processing_message = shared.processing_message
 
 
-def chat_input_modifier(text: str, visible_text: str, state: dict) -> [str, str]:
+def chat_input_modifier(text: str, visible_text: str, state: dict) -> tuple[str, str]:
     """
     Modifies the user input string in chat mode (visible_text).
     You can also modify the internal representation of the user
@@ -47,13 +46,14 @@ def chat_input_modifier(text: str, visible_text: str, state: dict) -> [str, str]
     input_text = text
 
     if context is not None and not context.is_completed:
-        # A manual trigger was used so only update the context
+        # A manual trigger was used so only update the context state
         context.input_text = input_text
         context.state = state
         context.sd_client = sd_client
         return text, visible_text
 
     ext_params = StableDiffusionWebUiExtensionParams(**params)
+    ext_params.normalize()
 
     if ext_params.trigger_mode == TriggerMode.MANUAL:
         return text, visible_text
@@ -62,15 +62,17 @@ def chat_input_modifier(text: str, visible_text: str, state: dict) -> [str, str]
         description_prompt = try_get_description_prompt(text, ext_params)
 
         if description_prompt is False:
-            # No trigger was found
+            # did not match trigger regex
             return text, visible_text
 
         assert isinstance(description_prompt, str)
-        text = description_prompt
 
-    if ext_params.trigger_mode == TriggerMode.CONTINUOUS:
-        # todo: create prompt based on chat history and chat context
-        pass
+        text = (
+            description_prompt
+            if ext_params.interactive_mode_prompt_generation_mode
+            == InteractiveModePromptGenerationMode.DYNAMIC
+            else text
+        )
 
     context = (
         GenerationContext(
@@ -141,6 +143,9 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
     and the original version goes into history['internal'].
     """
 
+    if not is_chat:
+        return string
+
     context = get_current_context()
 
     if context is None or context.is_completed:
@@ -151,11 +156,15 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
     context.output_text = string
 
     try:
-        images_html = generate_html_images_for_context(context)
+        images_html, prompt, _ = generate_html_images_for_context(context)
 
         if images_html:
-            if context.params.trigger_mode == TriggerMode.INTERACTIVE:
-                string = f"*{description_to_prompt(string)}*"
+            if (
+                context.params.trigger_mode == TriggerMode.INTERACTIVE
+                and context.params.interactive_mode_prompt_generation_mode
+                == InteractiveModePromptGenerationMode.DYNAMIC
+            ):
+                string = f"*{prompt}*"
 
             string = f"{images_html}\n{string}"
 

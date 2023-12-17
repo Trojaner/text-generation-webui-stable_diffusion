@@ -7,34 +7,39 @@ from typing import cast
 from webuiapi import WebUIApiResult
 from modules.logging_colors import logger
 from ..context import GenerationContext
-from ..params import TriggerMode
+from ..params import (
+    ContinuousModePromptGenerationMode,
+    InteractiveModePromptGenerationMode,
+    TriggerMode,
+)
 from .vram_manager import VramReallocationTarget, attempt_vram_reallocation
 
 
 def normalize_prompt(prompt: str) -> str:
-    if prompt is None or prompt.replace(",", "").replace("\n", "").strip() == "":
+    if prompt is None:
         return ""
 
-    return prompt.strip().strip(",").strip().strip("\n")
-
-
-def description_to_prompt(description: str) -> str:
-    return normalize_prompt(
-        description.replace("*", "")
+    return (
+        prompt.split("\n")[0]
+        .replace("*", "")
         .replace('"', "")
-        .replace(".", "")
-        .replace("!", "")
-        .replace("?", "")
-        .replace("#", "")
-        .replace(":", "")
-        .replace(";", "")
-        .split("\n")[0]
+        .replace(".", ",")
+        .replace("!", ",")
+        .replace("?", ",")
+        .replace(":", ",")
+        .replace(";", ",")
+        .strip()
         .strip("(")
         .strip(")")
+        .strip(",")
+        .strip()
+        .lower()
     )
 
 
-def generate_html_images_for_context(context: GenerationContext) -> str | None:
+def generate_html_images_for_context(
+    context: GenerationContext,
+) -> tuple[str | None, str, str]:
     """
     Generates images for the given context using Stable Diffusion
     and returns the result as HTML output
@@ -43,27 +48,41 @@ def generate_html_images_for_context(context: GenerationContext) -> str | None:
     attempt_vram_reallocation(VramReallocationTarget.STABLE_DIFFUSION, context)
     sd_client = context.sd_client
 
-    if context.params.trigger_mode == TriggerMode.INTERACTIVE:
-        full_prompt = (
-            description_to_prompt(context.output_text) + ","
-            if context.output_text
-            else ""
-        ) + normalize_prompt(context.params.base_prompt_suffix)
-    else:
-        full_prompt = (
-            normalize_prompt(context.params.default_prompt)
-            + ","
-            + normalize_prompt(context.params.base_prompt_suffix)
-        )
+    base_prompt = context.params.default_prompt
+
+    if context.params.trigger_mode == TriggerMode.INTERACTIVE and (
+        context.params.interactive_mode_prompt_generation_mode
+        == InteractiveModePromptGenerationMode.GENERATED_TEXT
+        or InteractiveModePromptGenerationMode.DYNAMIC
+    ):
+        base_prompt = context.output_text or ""
+
+    if context.params.trigger_mode == TriggerMode.CONTINUOUS and (
+        context.params.continuous_mode_prompt_generation_mode
+        == ContinuousModePromptGenerationMode.GENERATED_TEXT
+    ):
+        base_prompt = context.output_text or ""
+
+    base_prompt = normalize_prompt(base_prompt)
+
+    full_prompt = (
+        base_prompt
+        + (", " if base_prompt and base_prompt != "" else "")
+        + normalize_prompt(context.params.base_prompt_suffix)
+    )
 
     full_negative_prompt = normalize_prompt(context.params.base_negative_prompt)
 
-    logger.info(
-        (
-            "[SD WebUI Integration] Using stable-diffusion-webui to generate images.\n"
+    logger.info
+    (
+        "[SD WebUI Integration] Using stable-diffusion-webui to generate images."
+        + (
+            f"\n"
             f"  Prompt: {full_prompt}\n"
             f"  Negative Prompt: {full_negative_prompt}"
         )
+        if context.params.debug_mode_enabled
+        else ""
     )
 
     try:
@@ -89,23 +108,44 @@ def generate_html_images_for_context(context: GenerationContext) -> str | None:
 
         if len(response.images) == 0:
             logger.error("[SD WebUI Integration] Failed to generate any images.")
-            return None
+            return None, full_prompt, full_negative_prompt
 
         formatted_result = ""
         style = 'style="width: 100%; max-height: 100vh;"'
         for image in response.images:
             if context.params.faceswaplab_enabled:
-                logger.info("[SD WebUI Integration] Using FaceSwapLab to swap faces.")
+                if context.params.debug_mode_enabled:
+                    logger.info(
+                        "[SD WebUI Integration] Using FaceSwapLab to swap faces."
+                    )
 
                 try:
                     response = sd_client.faceswaplab_swap_face(
                         image,
-                        face=context.params.faceswaplab_source_face,
+                        params=context.params,
                         use_async=False,
                     )
                     image = response.image
                 except Exception as e:
-                    logger.error(f"[SD WebUI Integration] Failed to swap faces: {e}")
+                    logger.error(
+                        f"[SD WebUI Integration] FaceSwapLab failed to swap faces: {e}"
+                    )
+
+            if context.params.reactor_enabled:
+                if context.params.debug_mode_enabled:
+                    logger.info("[SD WebUI Integration] Using Reactor to swap faces.")
+
+                try:
+                    response = sd_client.reactor_swap_face(
+                        image,
+                        params=context.params,
+                        use_async=False,
+                    )
+                    image = response.image
+                except Exception as e:
+                    logger.error(
+                        f"[SD WebUI Integration] Reactor failed to swap faces: {e}"
+                    )
 
             if context.params.save_images:
                 character = (
@@ -140,4 +180,4 @@ def generate_html_images_for_context(context: GenerationContext) -> str | None:
     finally:
         attempt_vram_reallocation(VramReallocationTarget.LLM, context)
 
-    return formatted_result.rstrip("\n")
+    return formatted_result.rstrip("\n"), full_prompt, full_negative_prompt
