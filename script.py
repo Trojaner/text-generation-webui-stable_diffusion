@@ -156,7 +156,7 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
     context.output_text = string
 
     try:
-        images_html, prompt, _ = generate_html_images_for_context(context)
+        images_html, prompt, _, _ = generate_html_images_for_context(context)
 
         if images_html:
             if (

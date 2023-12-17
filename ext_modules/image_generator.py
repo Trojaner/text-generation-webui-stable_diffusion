@@ -15,31 +15,34 @@ from ..params import (
 from .vram_manager import VramReallocationTarget, attempt_vram_reallocation
 
 
-def normalize_prompt(prompt: str) -> str:
+def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> str:
     if prompt is None:
         return ""
 
-    return (
-        prompt.split("\n")[0]
-        .replace("*", "")
+    result = (
+        prompt.replace("*", "")
         .replace('"', "")
-        .replace(".", ",")
         .replace("!", ",")
         .replace("?", ",")
-        .replace(":", ",")
         .replace(";", ",")
         .strip()
         .strip("(")
         .strip(")")
         .strip(",")
         .strip()
-        .lower()
     )
+
+    if do_additional_normalization:
+        result = (
+            result.split("\n")[0].replace(".", ",").replace(":", "").lower().strip()
+        )
+
+    return result
 
 
 def generate_html_images_for_context(
     context: GenerationContext,
-) -> tuple[str | None, str, str]:
+) -> tuple[str | None, str, str, str]:
     """
     Generates images for the given context using Stable Diffusion
     and returns the result as HTML output
@@ -49,6 +52,7 @@ def generate_html_images_for_context(
     sd_client = context.sd_client
 
     base_prompt = context.params.default_prompt
+    do_additional_normalization = False
 
     if context.params.trigger_mode == TriggerMode.INTERACTIVE and (
         context.params.interactive_mode_prompt_generation_mode
@@ -56,14 +60,18 @@ def generate_html_images_for_context(
         or InteractiveModePromptGenerationMode.DYNAMIC
     ):
         base_prompt = context.output_text or ""
+        do_additional_normalization = True
 
     if context.params.trigger_mode == TriggerMode.CONTINUOUS and (
         context.params.continuous_mode_prompt_generation_mode
         == ContinuousModePromptGenerationMode.GENERATED_TEXT
     ):
         base_prompt = context.output_text or ""
+        do_additional_normalization = True
 
-    base_prompt = normalize_prompt(base_prompt)
+    base_prompt = normalize_prompt(
+        base_prompt, do_additional_normalization=do_additional_normalization
+    )
 
     full_prompt = (
         base_prompt
@@ -108,7 +116,7 @@ def generate_html_images_for_context(
 
         if len(response.images) == 0:
             logger.error("[SD WebUI Integration] Failed to generate any images.")
-            return None, full_prompt, full_negative_prompt
+            return None, base_prompt, full_prompt, full_negative_prompt
 
         formatted_result = ""
         style = 'style="width: 100%; max-height: 100vh;"'
@@ -180,4 +188,4 @@ def generate_html_images_for_context(
     finally:
         attempt_vram_reallocation(VramReallocationTarget.LLM, context)
 
-    return formatted_result.rstrip("\n"), full_prompt, full_negative_prompt
+    return formatted_result.rstrip("\n"), base_prompt, full_prompt, full_negative_prompt

@@ -1,5 +1,5 @@
 # Stable Diffusion Extension for text-generation-webui
-Integrates image generation functionality to [text-generation-webui](https://github.com/oobabooga/text-generation-webui) using Stable Diffusion.  
+Integrates image generation capabilities to [text-generation-webui](https://github.com/oobabooga/text-generation-webui) using Stable Diffusion.  
 Requires stable-diffusion-webui with enabled API.
 
 Demo: 
