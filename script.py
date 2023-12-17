@@ -55,6 +55,9 @@ def chat_input_modifier(text: str, visible_text: str, state: dict) -> [str, str]
 
     ext_params = StableDiffusionWebUiExtensionParams(**params)
 
+    if ext_params.trigger_mode == TriggerMode.MANUAL:
+        return text, visible_text
+
     if ext_params.trigger_mode == TriggerMode.INTERACTIVE:
         description_prompt = try_get_description_prompt(text, ext_params)
 

@@ -152,4 +152,3 @@ class StableDiffusionWebUiExtensionParams(
                     requests.get(self.faceswaplab_source_face).content
                 ).decode()
             )
-        pass
