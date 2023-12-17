@@ -34,7 +34,12 @@ def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> 
 
     if do_additional_normalization:
         result = (
-            result.split("\n")[0].replace(".", ",").replace(":", "").lower().strip()
+            result.split("\n")[0]
+            .replace(".", ",")
+            .replace(":", "")
+            .replace("*", "")
+            .lower()
+            .strip()
         )
 
     return result
