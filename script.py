@@ -2,7 +2,7 @@ import html
 import re
 from dataclasses import asdict
 from typing import Any, List
-from modules import shared
+from modules import chat, shared
 from modules.logging_colors import logger
 from .context import GenerationContext, get_current_context, set_current_context
 from .ext_modules.image_generator import generate_html_images_for_context
@@ -24,7 +24,7 @@ picture_processing_message = "*Is sending a picture...*"
 default_processing_message = shared.processing_message
 
 
-def chat_input_modifier(text: str, visible_text: str, state: dict) -> tuple[str, str]:
+def custom_generate_chat_prompt(text: str, state: dict, **kwargs: dict) -> str:
     """
     Modifies the user input string in chat mode (visible_text).
     You can also modify the internal representation of the user
@@ -45,6 +45,7 @@ def chat_input_modifier(text: str, visible_text: str, state: dict) -> tuple[str,
         password=params["api_password"],
     )
 
+    prompt: str = chat.generate_chat_prompt(text, state, **kwargs)
     input_text = text
 
     if context is not None and not context.is_completed:
@@ -52,20 +53,20 @@ def chat_input_modifier(text: str, visible_text: str, state: dict) -> tuple[str,
         context.input_text = input_text
         context.state = state
         context.sd_client = sd_client
-        return text, visible_text
+        return prompt
 
     ext_params = StableDiffusionWebUiExtensionParams(**params)
     ext_params.normalize()
 
     if ext_params.trigger_mode == TriggerMode.MANUAL:
-        return text, visible_text
+        return prompt
 
     if ext_params.trigger_mode == TriggerMode.INTERACTIVE:
         description_prompt = try_get_description_prompt(text, ext_params)
 
         if description_prompt is False:
             # did not match trigger regex
-            return text, visible_text
+            return prompt
 
         assert isinstance(description_prompt, str)
 
@@ -97,7 +98,7 @@ def chat_input_modifier(text: str, visible_text: str, state: dict) -> tuple[str,
         else default_processing_message
     )
 
-    return text, visible_text
+    return prompt
 
 
 def state_modifier(state: dict) -> dict:
@@ -160,25 +161,29 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
         if ext_params.trigger_mode == TriggerMode.INTERACTIVE:
             output_regex = ext_params.interactive_mode_output_trigger_regex
 
-        normalized_message = html.unescape(string).strip()
+            normalized_message = html.unescape(string).strip()
 
-        if output_regex and re.match(output_regex, normalized_message, re.IGNORECASE):
-            sd_client = SdWebUIApi(
-                baseurl=ext_params.api_endpoint,
-                username=ext_params.api_username,
-                password=ext_params.api_password,
-            )
+            if (
+                output_regex
+                and normalized_message
+                and re.match(output_regex, normalized_message, re.IGNORECASE)
+            ):
+                sd_client = SdWebUIApi(
+                    baseurl=ext_params.api_endpoint,
+                    username=ext_params.api_username,
+                    password=ext_params.api_password,
+                )
 
-            context = GenerationContext(
-                params=ext_params,
-                sd_client=sd_client,
-                input_text=state["input"],
-                state=state,
-            )
+                context = GenerationContext(
+                    params=ext_params,
+                    sd_client=sd_client,
+                    input_text=state.get("input", ""),
+                    state=state,
+                )
 
             set_current_context(context)
 
-    if context is None or context.is_completed:
+    if "<img" in state.get("input", "") or context is None or context.is_completed:
         set_current_context(None)
         return string
 
@@ -199,7 +204,7 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
             string = f"{images_html}\n{string}"
 
     except Exception as e:
-        string += "\n\n*Image generation has failed.*"
+        string += "\n\n*Image generation has failed. Check logs for errors.*"
         logger.error(e)
         return string
 

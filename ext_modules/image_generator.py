@@ -18,6 +18,16 @@ from ..params import (
 from .vram_manager import VramReallocationTarget, attempt_vram_reallocation
 
 
+def normalize_regex(regex: str) -> str:
+    if not regex.startswith("^") and not regex.startswith(".*"):
+        regex = f".*{regex}"
+
+    if not regex.endswith("$") and not regex.endswith(".*"):
+        regex = f"{regex}.*"
+
+    return regex
+
+
 def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> str:
     if prompt is None:
         return ""
@@ -28,12 +38,10 @@ def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> 
         .replace("!", ",")
         .replace("?", ",")
         .replace("&", "")
-        .replace(".", ",")
         .replace(",,", ",")
         .replace(", ,", ",")
+        .replace(";", ",")
         .strip()
-        .strip("(")
-        .strip(")")
         .strip(",")
         .strip()
     )
@@ -58,63 +66,74 @@ def generate_html_images_for_context(
 
     if context.params.generation_rules:
         for rule in context.params.generation_rules:
-            match_against = []
+            try:
+                match_against = []
 
-            if "match" in rule:
-                if (
-                    context.input_text
-                    and context.input_text != ""
-                    and RegexGenerationRuleMatch.INPUT.value in rule["match"]
-                ):
-                    match_against.append(context.input_text.strip())
+                if "match" in rule:
+                    if (
+                        context.input_text
+                        and context.input_text != ""
+                        and RegexGenerationRuleMatch.INPUT.value in rule["match"]
+                    ):
+                        match_against.append(context.input_text.strip())
 
-                if (
-                    context.output_text
-                    and context.output_text != ""
-                    and RegexGenerationRuleMatch.OUTPUT.value in rule["match"]
-                ):
-                    match_against.append(html.unescape(context.output_text).strip())
+                    if (
+                        context.output_text
+                        and context.output_text != ""
+                        and RegexGenerationRuleMatch.OUTPUT.value in rule["match"]
+                    ):
+                        match_against.append(html.unescape(context.output_text).strip())
 
-                if (
-                    context.state
-                    and "character_menu" in context.state
-                    and context.state["character_menu"]
-                    and context.state["character_menu"] != ""
-                    and RegexGenerationRuleMatch.CHARACTER_NAME.value in rule["match"]
-                ):
-                    match_against.append(context.state["character_menu"])
+                    if (
+                        context.state
+                        and "character_menu" in context.state
+                        and context.state["character_menu"]
+                        and context.state["character_menu"] != ""
+                        and RegexGenerationRuleMatch.CHARACTER_NAME.value
+                        in rule["match"]
+                    ):
+                        match_against.append(context.state["character_menu"])
 
-                if "negative_regex" in rule and any(
-                    re.match(rule["negative_regex"], x, re.IGNORECASE)
-                    for x in match_against
-                ):
+                    if "negative_regex" in rule and any(
+                        re.match(
+                            normalize_regex(rule["negative_regex"]), x, re.IGNORECASE
+                        )
+                        for x in match_against
+                    ):
+                        continue
+
+                    if "regex" in rule and not any(
+                        re.match(normalize_regex(rule["regex"]), x, re.IGNORECASE)
+                        for x in match_against
+                    ):
+                        continue
+
+                if "actions" not in rule:
                     continue
 
-                if "regex" in rule and not any(
-                    re.match(rule["regex"], x, re.IGNORECASE) for x in match_against
-                ):
-                    continue
+                for action in rule["actions"]:
+                    if action["name"] == "skip_generation":
+                        return (
+                            None,
+                            "",
+                            "",
+                            context.params.base_prompt,
+                            context.params.base_negative_prompt,
+                        )
 
-            if "actions" not in rule:
-                continue
+                    if action["name"] == "prompt_append" and "args" in action:
+                        rules_prompt = _combine_prompts(rules_prompt, action["args"])
 
-            for action in rule["actions"]:
-                if action["name"] == "skip_generation":
-                    return (
-                        None,
-                        "",
-                        "",
-                        context.params.base_prompt,
-                        context.params.base_negative_prompt,
-                    )
+                    if action["name"] == "negative_prompt_append" "args" in action:
+                        rules_negative_prompt += _combine_prompts(
+                            rules_negative_prompt, action["args"]
+                        )
+            except Exception as e:
+                logger.error(
+                    f"[SD WebUI Integration] Failed to apply rule: {rule['regex']}: {e}"
+                )
 
-                if action["name"] == "prompt_append" and "args" in action:
-                    rules_prompt = _combine_prompts(rules_prompt, action["args"])
-
-                if action["name"] == "negative_prompt_append" "args" in action:
-                    rules_negative_prompt += _combine_prompts(
-                        rules_negative_prompt, action["args"]
-                    )
+    context_prompt = ""
 
     if context.params.trigger_mode == TriggerMode.INTERACTIVE and (
         context.params.interactive_mode_prompt_generation_mode
@@ -131,7 +150,15 @@ def generate_html_images_for_context(
 
     if ":" in context_prompt:
         context_prompt = (
-            context_prompt.split(":")[1].strip().split("\n")[0].strip().lower()
+            ", ".join(context_prompt.split(":")[1:])
+            .replace(".", ",")
+            .replace(":", ",")
+            .strip()
+            .strip("\n")
+            .strip()
+            .split("\n")[0]
+            .strip()
+            .lower()
         )
 
     generated_prompt = _combine_prompts(
@@ -139,13 +166,12 @@ def generate_html_images_for_context(
     )
     generated_negative_prompt = normalize_prompt(rules_negative_prompt)
 
-    full_prompt = _combine_prompts(
-        generated_prompt.replace(";", ","), context.params.base_prompt
-    )
+    full_prompt = _combine_prompts(generated_prompt, context.params.base_prompt)
 
     full_negative_prompt = _combine_prompts(
-        generated_negative_prompt.replace(";", ","), context.params.base_negative_prompt
+        generated_negative_prompt, context.params.base_negative_prompt
     )
+
     logger.info
     (
         "[SD WebUI Integration] Using stable-diffusion-webui to generate images."
