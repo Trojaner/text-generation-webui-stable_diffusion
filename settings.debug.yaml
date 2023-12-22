@@ -32,9 +32,8 @@ stable_diffusion-api_password: ""
 # IMAGE GENERATION PARAMETERS #
 #-----------------------------#
 
-stable_diffusion-default_prompt: "an adult female, close up, upper body, highlights in hair, brown eyes, wearing casual clothes, side light"
-stable_diffusion-base_prompt_suffix: "high resolution, detailed, realistic, vivid"
-stable_diffusion-base_negative_prompt: "ugly, disformed, disfigured, immature"
+stable_diffusion-base_prompt: "high resolution, detailed, realistic, vivid"
+stable_diffusion-base_negative_prompt: "disformed, disfigured, blurry, low resolution, unrealistic, pixelated, low quality, low res"
 stable_diffusion-sampler_name: "DPM SDE"
 stable_diffusion-sampling_steps: 7
 stable_diffusion-denoising_strength: 0.7
@@ -60,19 +59,25 @@ stable_diffusion-save_images: true
 ##  - "manual": Generates images only if the image generation button was pressed. (WIP, not implemented yet)
 stable_diffusion-trigger_mode: "interactive"
 
-## Defines the pattern for the input message which triggers image generation in interactive mode.
-stable_diffusion-interactive_mode_input_trigger_regex: "(?aims)(send|mail|message|me)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?\\b"
-
-## Set's how the base prompt for image generation should be generated. Possible values:
-##  - "default_prompt": Uses the default_prompt option as a static prompt ignoring any chat context.
+## Set's how the prompt for image generation should be generated. Possible values:
+##  - "static": Uses the prompt option as-is ignoring any chat context.
 ##  - "generated_text": Uses the generated output as-is as prompt.
-##  - "dynamic": Uses a dynamic prompt using the subject_regex, default_subject and description_prompt options.
-## The result is combined with the base_prompt_suffix and base_negative_prompt options.
+##  - "dynamic": Generates a dynamic prompt using the subject_regex, default_subject and description_prompt options.
+## The result is combined with the base_prompt and base_negative_prompt options.
 stable_diffusion-interactive_mode_prompt_generation_mode: "dynamic"
 
-## Defines how to extract the subject of the input message for dynamic prompt generation in interactive mode.
+## Defines the regex pattern for the input message which triggers image generation in interactive mode.
+stable_diffusion-interactive_mode_input_trigger_regex: >-
+  (^|\b)(send|upload|add|show|attach|generate)\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)(\b|$)
+
+## Defines the regex pattern for the generated output message which triggers image generation in interactive mode.
+stable_diffusion-interactive_mode_output_trigger_regex: >-
+  (^|\b)[*([](sends|uploads|adds|shows|attaches|generates|here (is|are))\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?.+?([*)\]]|$)
+
+## Defines the regex pattern for extracting the subject of the message for dynamic prompt generation in interactive mode.
 ## Only used when prompt_generation_mode is set to "dynamic".
-stable_diffusion-interactive_mode_subject_regex: ".*\\s+of\\s+(.*)[\\.,!?]?"
+stable_diffusion-interactive_mode_subject_regex: >-
+  .*of\b(.+?)(?:[.!?]|$)
 
 ## Sets the default subject to use instead if no subject was found in the input message using the subject_regex option.
 ## Only used when prompt_generation_mode is set to "dynamic".
@@ -89,9 +94,9 @@ stable_diffusion-interactive_mode_description_prompt: >
   Very important: only write the comma-separated tags. Do not write anything else. Do not ask any questions. Do not talk.
 
 ## Set's how the base prompt for image generation should be generated. Possible values:
-##  - "default_prompt": Uses the default_prompt option as a static prompt ignoring any chat context.
+##  - "static": Uses the prompt option as-is ignoring any chat context.
 ##  - "generated_text": Uses the generated output as-is as prompt.
-## The result is combined with the base_prompt_suffix and base_negative_prompt options.
+## The result is combined with the base_prompt and base_negative_prompt options.
 stable_diffusion-continuous_mode_prompt_generation_mode: "generated_text"
 
 ## If enabled, will automatically unload the LLM model from VRAM and then load the SD model instead when generating images.
@@ -101,6 +106,38 @@ stable_diffusion-dynamic_vram_reallocation_enabled: false
 
 ## Do not stream messages if generating images at the same time. Improves generation speed.
 stable_diffusion-dont_stream_when_generating_images: true
+
+## Defines regex based rules that triggers the given actions.
+## regex: The regex pattern that triggers the action (optional)
+## negative_regex: Do not trigger the action if the text matches this regex (optional)
+## match: A list of where to match the regex. Available options:
+## - "input": match on input text.
+#  - "output": match on generated output text.
+#  - "input_output": match on input or output text.
+#  - "character_name": match on current character name (only if using gallery extension).
+## actions: A list of actions to perform if the regex matches.
+## - name: The name of the action to perform.
+##   Available options:
+##   - "prompt_append": appends the given text in "args" to the image generation prompt if an image is to be generated.
+##   - "negative_prompt_append": appends the given text in "args" to the image generation negative prompt if an image is to be generated.
+##   - "skip_generation": force skips any image generation.
+## - args: The arguments to pass to the action (optional).
+stable_diffusion-generation_rules:
+  # Add details to the prompt if the input text or output text contains the word "detailed".
+  - regex: \b(detailed)\b
+    match: ["input", "output"]
+    actions:
+      - name: "prompt_append"
+        args: "(high resolution, detailed, realistic, vivid: 1.2), hdr, 8k, <lora:add_details:1>"
+
+  # Append a prompt and negative prompt describing the characters look if the character's name equals "Assistant".
+  - regex: ^Assistant$
+    match: ["character_name"]
+    actions:
+      - name: "prompt_append"
+        args: "small cute robot, monochrome, droid, 3d render, white reflective plastic body, simple, 3DMM, <lora:3DMM_V12:1>"
+      - name: "negative_prompt_append"
+        args: "humanoid, human, person, animal, anthropomorphic"
 
 #-----------------#
 # POST PROCESSING #

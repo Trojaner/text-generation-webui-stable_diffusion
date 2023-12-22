@@ -32,7 +32,7 @@ class TriggerMode(str, Enum):
 
 
 class ContinuousModePromptGenerationMode(str, Enum):
-    DEFAULT_PROMPT = "default_prompt"
+    STATIC = "static"
     GENERATED_TEXT = "generated_text"
 
     @classmethod
@@ -48,7 +48,7 @@ class ContinuousModePromptGenerationMode(str, Enum):
 
 
 class InteractiveModePromptGenerationMode(str, Enum):
-    DEFAULT_PROMPT = "default_prompt"
+    STATIC = "static"
     GENERATED_TEXT = "generated_text"
     DYNAMIC = "dynamic"
 
@@ -61,7 +61,7 @@ class InteractiveModePromptGenerationMode(str, Enum):
         return list(InteractiveModePromptGenerationMode)[index]  # type: ignore
 
     def __str__(self) -> str:
-        return self.value
+        return self
 
 
 class ReactorFace(int, Enum):
@@ -87,12 +87,7 @@ class StableDiffusionClientParams:
 
 @dataclass
 class StableDiffusionGenerationParams:
-    default_prompt: str = field(
-        default="an adult female, close up, upper body, highlights in hair, brown eyes, wearing casual clothes, side light"  # noqa E501
-    )
-    base_prompt_suffix: str = field(
-        default="high resolution, detailed, realistic, vivid"
-    )
+    base_prompt: str = field(default="high resolution, detailed, realistic, vivid")
     base_negative_prompt: str = field(default="ugly, disformed, disfigured, immature")
     sampler_name: str = field(default="UniPC")
     denoising_strength: float = field(default=0.7)
@@ -113,16 +108,45 @@ class StableDiffusionPostProcessingParams:
 
 
 @dataclass
+class RegexGenerationRuleMatch(str, Enum):
+    INPUT = "input"
+    OUTPUT = "output"
+    CHARACTER_NAME = "character_name"
+
+    def __str__(self) -> str:
+        return self
+
+
+@dataclass
+class RegexGenerationAction:
+    name: str
+    args: str | None
+
+
+@dataclass
+class RegexGenerationRule:
+    regex: str | None
+    negative_regex: str | None
+    match: list[RegexGenerationRuleMatch] | None
+    actions: list[RegexGenerationAction]
+
+
+@dataclass
 class UserPreferencesParams:
     save_images: bool = field(default=True)
     trigger_mode: TriggerMode = field(default=TriggerMode.INTERACTIVE)
     interactive_mode_input_trigger_regex: str = field(
-        default="(?aims)(send|mail|message|me)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?\\b"  # noqa E501
+        default="(^|\\b)(send|upload|add|show|attach|generate)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)(\\b|$)"  # noqa E501
+    )
+    interactive_mode_output_trigger_regex: str = field(
+        default="(^|\\b)[*([](sends|uploads|adds|shows|attaches|generates)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?.+?([*)\\]]|$)"  # noqa E501
     )
     interactive_mode_prompt_generation_mode: InteractiveModePromptGenerationMode = (
         field(default=InteractiveModePromptGenerationMode.DYNAMIC)
     )
-    interactive_mode_subject_regex: str = field(default=".*\\s+of\\s+(.*)[\\.,!?]?")
+    interactive_mode_subject_regex: str = field(
+        default="\\bof\\b(.+?)\\b(?:[.,:;!?*]|$)"
+    )
     interactive_mode_description_prompt: str = field(default=default_description_prompt)
     interactive_mode_default_subject: str = field(
         default="your appearance, your surroundings and what you are doing right now"
@@ -132,6 +156,9 @@ class UserPreferencesParams:
     )
     dynamic_vram_reallocation_enabled: bool = field(default=False)
     dont_stream_when_generating_images: bool = field(default=True)
+    generation_rules: dict | None = field(
+        default=None
+    )  # list[RegexGenerationRule] | None = field(default=None)
 
 
 @dataclass

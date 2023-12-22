@@ -1,3 +1,5 @@
+import html
+import re
 from dataclasses import asdict
 from typing import Any, List
 from modules import shared
@@ -144,19 +146,47 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
     """
 
     if not is_chat:
+        set_current_context(None)
         return string
+
+    global params
 
     context = get_current_context()
 
     if context is None or context.is_completed:
-        # We are currently not generating images, so do nothing
+        ext_params = StableDiffusionWebUiExtensionParams(**params)
+        ext_params.normalize()
+
+        if ext_params.trigger_mode == TriggerMode.INTERACTIVE:
+            output_regex = ext_params.interactive_mode_output_trigger_regex
+
+        normalized_message = html.unescape(string).strip()
+
+        if output_regex and re.match(output_regex, normalized_message, re.IGNORECASE):
+            sd_client = SdWebUIApi(
+                baseurl=ext_params.api_endpoint,
+                username=ext_params.api_username,
+                password=ext_params.api_password,
+            )
+
+            context = GenerationContext(
+                params=ext_params,
+                sd_client=sd_client,
+                input_text=state["input"],
+                state=state,
+            )
+
+            set_current_context(context)
+
+    if context is None or context.is_completed:
+        set_current_context(None)
         return string
 
     context.state = state
     context.output_text = string
 
     try:
-        images_html, prompt, _, _ = generate_html_images_for_context(context)
+        images_html, prompt, _, _, _ = generate_html_images_for_context(context)
 
         if images_html:
             if (
@@ -164,7 +194,7 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
                 and context.params.interactive_mode_prompt_generation_mode
                 == InteractiveModePromptGenerationMode.DYNAMIC
             ):
-                string = f"*{prompt}*"
+                string = f"*{html.escape(prompt)}*"
 
             string = f"{images_html}\n{string}"
 

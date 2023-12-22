@@ -114,39 +114,28 @@ def _render_prompts(params: Params) -> None:
     with gr.Accordion("Prompt Settings", open=True, visible=sd_connected) as prompts:
         connect_listeners.append(prompts)
 
-        default_prompt = gr.Textbox(
-            label="Default prompt",
-            placeholder=params.default_prompt,
-            value=lambda: params.default_prompt,
-        )
-        default_prompt.change(
-            lambda new_prompt: params.update(Params(default_prompt=new_prompt)),
-            default_prompt,
-            None,
-        )
-
         with gr.Row():
-            base_prompt_suffix = gr.Textbox(
-                label="Base prompt used for all prompts",
-                placeholder=params.base_prompt_suffix,
-                value=lambda: params.base_prompt_suffix,
+            prompt = gr.Textbox(
+                label="Base prompt used for image generation",
+                placeholder=params.base_prompt,
+                value=lambda: params.base_prompt,
             )
-            base_prompt_suffix.change(
-                lambda new_prompt: params.update(Params(base_prompt_suffix=new_prompt)),
-                base_prompt_suffix,
+            prompt.change(
+                lambda new_prompt: params.update(Params(base_prompt=new_prompt)),
+                prompt,
                 None,
             )
 
-            base_negative_prompt = gr.Textbox(
-                label="Base negative prompt used for all prompts",
+            negative_prompt = gr.Textbox(
+                label="Base negative prompt used for image generation",
                 placeholder=params.base_negative_prompt,
                 value=lambda: params.base_negative_prompt,
             )
-            base_negative_prompt.change(
+            negative_prompt.change(
                 lambda new_prompt: params.update(
                     Params(base_negative_prompt=new_prompt)
                 ),
-                base_negative_prompt,
+                negative_prompt,
                 None,
             )
 

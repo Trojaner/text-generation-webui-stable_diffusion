@@ -1,5 +1,7 @@
 import base64
+import html
 import io
+import re
 import time
 from datetime import date
 from pathlib import Path
@@ -10,6 +12,7 @@ from ..context import GenerationContext
 from ..params import (
     ContinuousModePromptGenerationMode,
     InteractiveModePromptGenerationMode,
+    RegexGenerationRuleMatch,
     TriggerMode,
 )
 from .vram_manager import VramReallocationTarget, attempt_vram_reallocation
@@ -24,7 +27,10 @@ def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> 
         .replace('"', "")
         .replace("!", ",")
         .replace("?", ",")
-        .replace(";", ",")
+        .replace("&", "")
+        .replace(".", ",")
+        .replace(",,", ",")
+        .replace(", ,", ",")
         .strip()
         .strip("(")
         .strip(")")
@@ -32,60 +38,114 @@ def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> 
         .strip()
     )
 
-    if do_additional_normalization:
-        result = (
-            result.split("\n")[0]
-            .replace(".", ",")
-            .replace(":", "")
-            .replace("*", "")
-            .lower()
-            .strip()
-        )
-
     return result
 
 
 def generate_html_images_for_context(
     context: GenerationContext,
-) -> tuple[str | None, str, str, str]:
+) -> tuple[str | None, str, str, str, str]:
     """
     Generates images for the given context using Stable Diffusion
     and returns the result as HTML output
     """
 
     attempt_vram_reallocation(VramReallocationTarget.STABLE_DIFFUSION, context)
+
     sd_client = context.sd_client
 
-    base_prompt = context.params.default_prompt
-    do_additional_normalization = False
+    rules_prompt = ""
+    rules_negative_prompt = ""
+
+    if context.params.generation_rules:
+        for rule in context.params.generation_rules:
+            match_against = []
+
+            if "match" in rule:
+                if (
+                    context.input_text
+                    and context.input_text != ""
+                    and RegexGenerationRuleMatch.INPUT.value in rule["match"]
+                ):
+                    match_against.append(context.input_text.strip())
+
+                if (
+                    context.output_text
+                    and context.output_text != ""
+                    and RegexGenerationRuleMatch.OUTPUT.value in rule["match"]
+                ):
+                    match_against.append(html.unescape(context.output_text).strip())
+
+                if (
+                    context.state
+                    and "character_menu" in context.state
+                    and context.state["character_menu"]
+                    and context.state["character_menu"] != ""
+                    and RegexGenerationRuleMatch.CHARACTER_NAME.value in rule["match"]
+                ):
+                    match_against.append(context.state["character_menu"])
+
+                if "negative_regex" in rule and any(
+                    re.match(rule["negative_regex"], x, re.IGNORECASE)
+                    for x in match_against
+                ):
+                    continue
+
+                if "regex" in rule and not any(
+                    re.match(rule["regex"], x, re.IGNORECASE) for x in match_against
+                ):
+                    continue
+
+            if "actions" not in rule:
+                continue
+
+            for action in rule["actions"]:
+                if action["name"] == "skip_generation":
+                    return (
+                        None,
+                        "",
+                        "",
+                        context.params.base_prompt,
+                        context.params.base_negative_prompt,
+                    )
+
+                if action["name"] == "prompt_append" and "args" in action:
+                    rules_prompt = _combine_prompts(rules_prompt, action["args"])
+
+                if action["name"] == "negative_prompt_append" "args" in action:
+                    rules_negative_prompt += _combine_prompts(
+                        rules_negative_prompt, action["args"]
+                    )
 
     if context.params.trigger_mode == TriggerMode.INTERACTIVE and (
         context.params.interactive_mode_prompt_generation_mode
         == InteractiveModePromptGenerationMode.GENERATED_TEXT
         or InteractiveModePromptGenerationMode.DYNAMIC
     ):
-        base_prompt = context.output_text or ""
-        do_additional_normalization = True
+        context_prompt = html.unescape(context.output_text or "")
 
     if context.params.trigger_mode == TriggerMode.CONTINUOUS and (
         context.params.continuous_mode_prompt_generation_mode
         == ContinuousModePromptGenerationMode.GENERATED_TEXT
     ):
-        base_prompt = context.output_text or ""
-        do_additional_normalization = True
+        context_prompt = html.unescape(context.output_text or "")
 
-    base_prompt = normalize_prompt(
-        base_prompt, do_additional_normalization=do_additional_normalization
+    if ":" in context_prompt:
+        context_prompt = (
+            context_prompt.split(":")[1].strip().split("\n")[0].strip().lower()
+        )
+
+    generated_prompt = _combine_prompts(
+        normalize_prompt(rules_prompt), normalize_prompt(context_prompt)
+    )
+    generated_negative_prompt = normalize_prompt(rules_negative_prompt)
+
+    full_prompt = _combine_prompts(
+        generated_prompt.replace(";", ","), context.params.base_prompt
     )
 
-    full_prompt = (
-        base_prompt
-        + (", " if base_prompt and base_prompt != "" else "")
-        + normalize_prompt(context.params.base_prompt_suffix)
+    full_negative_prompt = _combine_prompts(
+        generated_negative_prompt.replace(";", ","), context.params.base_negative_prompt
     )
-
-    full_negative_prompt = normalize_prompt(context.params.base_negative_prompt)
-
     logger.info
     (
         "[SD WebUI Integration] Using stable-diffusion-webui to generate images."
@@ -121,10 +181,17 @@ def generate_html_images_for_context(
 
         if len(response.images) == 0:
             logger.error("[SD WebUI Integration] Failed to generate any images.")
-            return None, base_prompt, full_prompt, full_negative_prompt
+            return (
+                None,
+                generated_prompt,
+                generated_negative_prompt,
+                full_prompt,
+                full_negative_prompt,
+            )
 
         formatted_result = ""
         style = 'style="width: 100%; max-height: 100vh;"'
+
         for image in response.images:
             if context.params.faceswaplab_enabled:
                 if context.params.debug_mode_enabled:
@@ -193,4 +260,20 @@ def generate_html_images_for_context(
     finally:
         attempt_vram_reallocation(VramReallocationTarget.LLM, context)
 
-    return formatted_result.rstrip("\n"), base_prompt, full_prompt, full_negative_prompt
+    return (
+        formatted_result.rstrip("\n"),
+        generated_prompt,
+        generated_negative_prompt,
+        full_prompt,
+        full_negative_prompt,
+    )
+
+
+def _combine_prompts(prompt1: str, prompt2: str) -> str:
+    if not prompt1 or prompt1 == "":
+        return prompt2.strip(",").strip()
+
+    if not prompt2 or prompt2 == "":
+        return prompt1.strip(",").strip()
+
+    return prompt1.strip(",").strip() + ", " + prompt2.strip(",").strip()

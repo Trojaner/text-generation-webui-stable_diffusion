@@ -1,3 +1,4 @@
+import html
 import re
 from ..params import StableDiffusionWebUiExtensionParams
 
@@ -13,13 +14,18 @@ def try_get_description_prompt(
     subject_regex = params.interactive_mode_subject_regex
     default_subject = params.interactive_mode_default_subject
     default_description_prompt = params.interactive_mode_description_prompt
+    normalized_message = html.unescape(message).strip()
 
-    if not re.match(trigger_regex, message, re.IGNORECASE):
+    if not trigger_regex or not re.match(
+        trigger_regex, normalized_message, re.IGNORECASE
+    ):
         return False
 
     subject = default_subject
-    match = re.match(subject_regex, message, re.IGNORECASE)
-    if match:
-        subject = match.group(1)
+
+    if subject_regex:
+        match = re.match(subject_regex, normalized_message, re.IGNORECASE)
+        if match:
+            subject = match.group(0) or default_subject
 
     return default_description_prompt.replace("[subject]", subject)
