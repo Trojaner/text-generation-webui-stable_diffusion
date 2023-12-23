@@ -78,6 +78,9 @@ def generate_html_images_for_context(
             try:
                 match_against = []
 
+                delimiters = ".", ",", "!", "?", "\n", "*", '"'
+                delimiters_regex_pattern = "|".join(map(re.escape, delimiters))
+
                 if "match" in rule:
                     if (
                         context.input_text
@@ -87,11 +90,39 @@ def generate_html_images_for_context(
                         match_against.append(context.input_text.strip())
 
                     if (
+                        context.input_text
+                        and context.input_text != ""
+                        and RegexGenerationRuleMatch.INPUT_SENTENCE.value
+                        in rule["match"]
+                    ):
+                        match_against += [
+                            x.strip()
+                            for x in re.split(
+                                delimiters_regex_pattern, context.input_text
+                            )
+                            if x.strip() != ""
+                        ]
+
+                    if (
                         context.output_text
                         and context.output_text != ""
                         and RegexGenerationRuleMatch.OUTPUT.value in rule["match"]
                     ):
                         match_against.append(html.unescape(context.output_text).strip())
+
+                    if (
+                        context.output_text
+                        and context.output_text != ""
+                        and RegexGenerationRuleMatch.OUTPUT_SENTENCE.value
+                        in rule["match"]
+                    ):
+                        match_against += [
+                            x.strip()
+                            for x in re.split(
+                                delimiters_regex_pattern, context.output_text
+                            )
+                            if x.strip() != ""
+                        ]
 
                     if (
                         context.state

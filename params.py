@@ -110,7 +110,9 @@ class StableDiffusionPostProcessingParams:
 @dataclass
 class RegexGenerationRuleMatch(str, Enum):
     INPUT = "input"
+    INPUT_SENTENCE = "input_sentence"
     OUTPUT = "output"
+    OUTPUT_SENTENCE = "output_sentence"
     CHARACTER_NAME = "character_name"
 
     def __str__(self) -> str:

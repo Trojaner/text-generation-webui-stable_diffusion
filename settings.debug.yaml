@@ -112,8 +112,9 @@ stable_diffusion-dont_stream_when_generating_images: true
 ## negative_regex: Do not trigger the action if the text matches this regex (optional)
 ## match: A list of where to match the regex. Available options:
 ## - "input": match on input text.
+## - "input_sentence": match on any sentence in input text.
 #  - "output": match on generated output text.
-#  - "input_output": match on input or output text.
+#  - "output_sentence": match on any sentence in generated output text.
 #  - "character_name": match on current character name (only if using gallery extension).
 ## actions: A list of actions to perform if the regex matches.
 ## - name: The name of the action to perform.
