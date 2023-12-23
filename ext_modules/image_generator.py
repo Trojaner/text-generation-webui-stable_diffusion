@@ -1,4 +1,5 @@
 import base64
+import dataclasses
 import html
 import io
 import re
@@ -66,6 +67,12 @@ def generate_html_images_for_context(
     rules_prompt = ""
     rules_negative_prompt = ""
 
+    faceswaplab_force_enabled: bool | None = None
+    faceswaplab_overwrite_source_face: str | None = None
+
+    reactor_force_enabled: bool | None = None
+    reactor_overwrite_source_face: str | None = None
+
     if context.params.generation_rules:
         for rule in context.params.generation_rules:
             try:
@@ -130,6 +137,28 @@ def generate_html_images_for_context(
                         rules_negative_prompt += _combine_prompts(
                             rules_negative_prompt, action["args"]
                         )
+
+                    if action["name"] == "faceswaplab_enable":
+                        faceswaplab_force_enabled = True
+
+                    if action["name"] == "faceswaplab_disable":
+                        faceswaplab_force_enabled = False
+
+                    if (
+                        action["name"] == "faceswaplab_set_source_face"
+                        and "args" in action
+                    ):
+                        faceswaplab_overwrite_source_face = action["args"]
+
+                    if action["name"] == "reactor_enable":
+                        reactor_force_enabled = True
+
+                    if action["name"] == "reactor_disable":
+                        reactor_force_enabled = False
+
+                    if action["name"] == "reactor_set_source_face" and "args" in action:
+                        reactor_overwrite_source_face = action["args"]
+
             except Exception as e:
                 logger.error(
                     f"[SD WebUI Integration] Failed to apply rule: {rule['regex']}: {e}"
@@ -221,7 +250,9 @@ def generate_html_images_for_context(
         style = 'style="width: 100%; max-height: 100vh;"'
 
         for image in response.images:
-            if context.params.faceswaplab_enabled:
+            if faceswaplab_force_enabled or (
+                faceswaplab_force_enabled is None and context.params.faceswaplab_enabled
+            ):
                 if context.params.debug_mode_enabled:
                     logger.info(
                         "[SD WebUI Integration] Using FaceSwapLab to swap faces."
@@ -230,7 +261,14 @@ def generate_html_images_for_context(
                 try:
                     response = sd_client.faceswaplab_swap_face(
                         image,
-                        params=context.params,
+                        params=(
+                            context.params
+                            if faceswaplab_overwrite_source_face is None
+                            else dataclasses.replace(
+                                context.params,
+                                faceswaplab_source_face=faceswaplab_overwrite_source_face,  # noqa: E501
+                            )
+                        ),
                         use_async=False,
                     )
                     image = response.image
@@ -239,14 +277,23 @@ def generate_html_images_for_context(
                         f"[SD WebUI Integration] FaceSwapLab failed to swap faces: {e}"
                     )
 
-            if context.params.reactor_enabled:
+            if reactor_force_enabled or (
+                reactor_force_enabled is None and context.params.reactor_enabled
+            ):
                 if context.params.debug_mode_enabled:
                     logger.info("[SD WebUI Integration] Using Reactor to swap faces.")
 
                 try:
                     response = sd_client.reactor_swap_face(
                         image,
-                        params=context.params,
+                        params=(
+                            context.params
+                            if reactor_overwrite_source_face is None
+                            else dataclasses.replace(
+                                context.params,
+                                reactor_source_face=reactor_overwrite_source_face,  # noqa: E501
+                            )
+                        ),
                         use_async=False,
                     )
                     image = response.image

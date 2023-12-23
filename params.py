@@ -136,15 +136,15 @@ class UserPreferencesParams:
     save_images: bool = field(default=True)
     trigger_mode: TriggerMode = field(default=TriggerMode.INTERACTIVE)
     interactive_mode_input_trigger_regex: str = field(
-        default="(^|\\b)(send|upload|add|show|attach|generate)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)(\\b|$)"  # noqa E501
+        default=".*(send|upload|add|show|attach|generate)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)"  # noqa E501
     )
     interactive_mode_output_trigger_regex: str = field(
-        default="(^|\\b)[*([](sends|uploads|adds|shows|attaches|generates|here (is|are))\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?.+?([*)\\]]|$)"  # noqa E501
+        default=".*[*([](sends|uploads|adds|shows|attaches|generates|here (is|are))\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)"  # noqa E501
     )
     interactive_mode_prompt_generation_mode: InteractiveModePromptGenerationMode = (
         field(default=InteractiveModePromptGenerationMode.DYNAMIC)
     )
-    interactive_mode_subject_regex: str = field(default=".*of\\b(.+?)(?:[.!?]|$)")
+    interactive_mode_subject_regex: str = field(default=".*\\b(of)\\b(.+?)(?:[.!?]|$)")
     interactive_mode_description_prompt: str = field(default=default_description_prompt)
     interactive_mode_default_subject: str = field(
         default="your appearance, your surroundings and what you are doing right now"

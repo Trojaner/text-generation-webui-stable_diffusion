@@ -163,10 +163,8 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
 
             normalized_message = html.unescape(string).strip()
 
-            if (
-                output_regex
-                and normalized_message
-                and re.match(output_regex, normalized_message, re.IGNORECASE)
+            if output_regex and re.match(
+                output_regex, normalized_message, re.IGNORECASE
             ):
                 sd_client = SdWebUIApi(
                     baseurl=ext_params.api_endpoint,
@@ -181,9 +179,9 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
                     state=state,
                 )
 
-            set_current_context(context)
+                set_current_context(context)
 
-    if "<img" in string or context is None or context.is_completed:
+    if "<img " in string or context is None or context.is_completed:
         set_current_context(None)
         return string
 
@@ -199,14 +197,13 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
                 and context.params.interactive_mode_prompt_generation_mode
                 == InteractiveModePromptGenerationMode.DYNAMIC
             ):
-                string = f"*{html.escape(prompt)}*"
+                string = f"*{html.escape(prompt).strip()}*"
 
             string = f"{images_html}\n{string}"
 
     except Exception as e:
         string += "\n\n*Image generation has failed. Check logs for errors.*"
         logger.error(e)
-        return string
 
     context.is_completed = True
     set_current_context(None)

@@ -68,16 +68,16 @@ stable_diffusion-interactive_mode_prompt_generation_mode: "dynamic"
 
 ## Defines the regex pattern for the input message which triggers image generation in interactive mode.
 stable_diffusion-interactive_mode_input_trigger_regex: >-
-  (^|\b)(send|upload|add|show|attach|generate)\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)(\b|$)
+  .*(send|upload|add|show|attach|generate)\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)
 
 ## Defines the regex pattern for the generated output message which triggers image generation in interactive mode.
 stable_diffusion-interactive_mode_output_trigger_regex: >-
-  (^|\b)[*([](sends|uploads|adds|shows|attaches|generates|here (is|are))\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)s?.+?([*)\]]|$)
+  .*[*([](sends|uploads|adds|shows|attaches|generates|here (is|are))\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)
 
 ## Defines the regex pattern for extracting the subject of the message for dynamic prompt generation in interactive mode.
 ## Only used when prompt_generation_mode is set to "dynamic".
 stable_diffusion-interactive_mode_subject_regex: >-
-  .*of\b(.+?)(?:[.!?]|$)
+  .*\b(of)\b(.+?)(?:[.!?]|$)
 
 ## Sets the default subject to use instead if no subject was found in the input message using the subject_regex option.
 ## Only used when prompt_generation_mode is set to "dynamic".
@@ -121,10 +121,16 @@ stable_diffusion-dont_stream_when_generating_images: true
 ##   - "prompt_append": appends the given text in "args" to the image generation prompt if an image is to be generated.
 ##   - "negative_prompt_append": appends the given text in "args" to the image generation negative prompt if an image is to be generated.
 ##   - "skip_generation": force skips any image generation.
+##   - "faceswaplab_enable": force enables face swap with FaceSwapLab.
+##   - "faceswaplab_disable": force disables face swap with FaceSwapLab.
+##   - "faceswaplab_set_source_face": sets source face for FaceSwapLab (requires "args" to be set to a valid source face).
+##   - "reactor_enable": force enables face swap with ReActor.
+##   - "reactor_disable": force disables face swap with ReActor.
+##   - "reactor_set_source_face": sets source face for ReActor (requires "args" to be set to a valid source face).
 ## - args: The arguments to pass to the action (optional).
 stable_diffusion-generation_rules:
   # Add details to the prompt if the input text or output text contains the word "detailed".
-  - regex: \b(detailed)\b
+  - regex: .*\b(detailed)\b
     match: ["input", "output"]
     actions:
       - name: "prompt_append"
@@ -138,6 +144,14 @@ stable_diffusion-generation_rules:
         args: "small cute robot, monochrome, droid, 3d render, white reflective plastic body, simple, 3DMM, <lora:3DMM_V12:1>"
       - name: "negative_prompt_append"
         args: "humanoid, human, person, animal, anthropomorphic"
+
+  # Enable face swap via FaceSwapLab (see below for documentation) if the character's name equals "Example".
+  - regex: ^Example$
+    match: ["character_name"]
+    actions:
+      - name: "faceswaplab_enable"
+      - name: "faceswaplab_set_source_face"
+        args: "file:///./extensions/stable_diffusion/assets/example_face.jpg"
 
 #-----------------#
 # POST PROCESSING #
