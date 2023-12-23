@@ -183,7 +183,7 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
 
             set_current_context(context)
 
-    if "<img" in state.get("input", "") or context is None or context.is_completed:
+    if "<img" in string or context is None or context.is_completed:
         set_current_context(None)
         return string
 

@@ -46,7 +46,9 @@ def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> 
         .strip()
     )
 
-    return result
+    # deduplicate tags
+    tags = set([x.strip() for x in result.split(",")])
+    return ", ".join(tags)
 
 
 def generate_html_images_for_context(
