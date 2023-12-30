@@ -228,6 +228,6 @@ class SdWebUIApi(WebUIApi):
             use_async,
         )
 
-    def refresh_vaes(self) -> Any:
-        response = self.session.post(url=f"{self.baseurl}/refresh-vaes")
+    def refresh_vae(self) -> Any:
+        response = self.session.post(url=f"{self.baseurl}/refresh-vae")
         return response.json()
