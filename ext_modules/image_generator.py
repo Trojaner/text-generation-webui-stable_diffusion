@@ -16,7 +16,6 @@ from ..params import (
     RegexGenerationRuleMatch,
     TriggerMode,
 )
-from ..script import EXTENSION_DIRECTORY_NAME
 from .vram_manager import VramReallocationTarget, attempt_vram_reallocation
 
 
@@ -280,6 +279,8 @@ def generate_html_images_for_context(
 
         formatted_result = ""
         style = 'style="width: 100%; max-height: 100vh;"'
+
+        from ..script import EXTENSION_DIRECTORY_NAME
 
         for image in response.images:
             if faceswaplab_force_enabled or (
