@@ -550,7 +550,10 @@ def _fetch_samplers(sd_client: SdWebUIApi) -> None:
     global sd_samplers, sd_connected
 
     try:
-        sd_samplers = [sampler["name"] for sampler in sd_client.get_samplers()]
+        sd_samplers = [
+            sampler if isinstance(sampler, str) else sampler["name"]
+            for sampler in sd_client.get_samplers()
+        ]
     except BaseException as error:
         logger.error(error)
         sd_connected = False
@@ -562,7 +565,10 @@ def _fetch_upscalers(sd_client: SdWebUIApi) -> None:
     global sd_upscalers, sd_connected
 
     try:
-        sd_upscalers = [upscaler["name"] for upscaler in sd_client.get_upscalers()]
+        sd_upscalers = [
+            upscaler if isinstance(upscaler, str) else upscaler["name"]
+            for upscaler in sd_client.get_upscalers()
+        ]
     except BaseException as error:
         logger.error(error)
         sd_connected = False
@@ -591,7 +597,7 @@ def _fetch_vaes(sd_client: SdWebUIApi) -> None:
     global sd_vaes, sd_current_vae, sd_connected
 
     try:
-        sd_client.refresh_vaes()
+        sd_client.refresh_vae()
         sd_current_vae = sd_options["sd_vae"]
         sd_vaes = [checkpoint["model_name"] for checkpoint in sd_client.get_sd_vae()]
     except BaseException as error:
