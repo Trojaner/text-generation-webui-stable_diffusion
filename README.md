@@ -28,9 +28,6 @@ Demo:
 - Open the [settings.debug.yaml](https://github.com/Trojaner/text-generation-webui-stable_diffusion/blob/main/settings.debug.yaml) file, copy the extension related settings to your own settings.json in the text-generation-webui directory.
 - Add `stable_diffusion` to the enabled extensions in settings.json.
 
-> **Note**
-> If you install this extension manually, make sure the extension directory is called stable_diffusion. 
-
 ## Development Environment Setup
 
 **Pre-requisites**  

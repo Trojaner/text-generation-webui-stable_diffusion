@@ -16,6 +16,7 @@ from ..params import (
     RegexGenerationRuleMatch,
     TriggerMode,
 )
+from ..script import EXTENSION_DIRECTORY_NAME
 from .vram_manager import VramReallocationTarget, attempt_vram_reallocation
 
 
@@ -292,13 +293,16 @@ def generate_html_images_for_context(
                 try:
                     response = sd_client.faceswaplab_swap_face(
                         image,
-                        params=(
-                            context.params
-                            if faceswaplab_overwrite_source_face is None
-                            else dataclasses.replace(
-                                context.params,
-                                faceswaplab_source_face=faceswaplab_overwrite_source_face,  # noqa: E501
-                            )
+                        params=dataclasses.replace(
+                            context.params,
+                            faceswaplab_source_face=(
+                                faceswaplab_overwrite_source_face
+                                if faceswaplab_overwrite_source_face is not None
+                                else context.params.faceswaplab_source_face
+                            ).replace(
+                                "{STABLE_DIFFUSION_EXTENSION_DIRECTORY}",
+                                f"./extensions/{EXTENSION_DIRECTORY_NAME}",
+                            ),
                         ),
                         use_async=False,
                     )
@@ -312,25 +316,28 @@ def generate_html_images_for_context(
                 reactor_force_enabled is None and context.params.reactor_enabled
             ):
                 if context.params.debug_mode_enabled:
-                    logger.info("[SD WebUI Integration] Using Reactor to swap faces.")
+                    logger.info("[SD WebUI Integration] Using ReActor to swap faces.")
 
                 try:
                     response = sd_client.reactor_swap_face(
                         image,
-                        params=(
-                            context.params
-                            if reactor_overwrite_source_face is None
-                            else dataclasses.replace(
-                                context.params,
-                                reactor_source_face=reactor_overwrite_source_face,  # noqa: E501
-                            )
+                        params=dataclasses.replace(
+                            context.params,
+                            reactor_source_face=(
+                                reactor_overwrite_source_face
+                                if reactor_overwrite_source_face is not None
+                                else context.params.reactor_source_face
+                            ).replace(
+                                "{STABLE_DIFFUSION_EXTENSION_DIRECTORY}",
+                                f"./extensions/{EXTENSION_DIRECTORY_NAME}",
+                            ),
                         ),
                         use_async=False,
                     )
                     image = response.image
                 except Exception as e:
                     logger.error(
-                        f"[SD WebUI Integration] Reactor failed to swap faces: {e}"
+                        f"[SD WebUI Integration] ReActor failed to swap faces: {e}"
                     )
 
             if context.params.save_images:
@@ -343,7 +350,9 @@ def generate_html_images_for_context(
                 file = f'{date.today().strftime("%Y_%m_%d")}/{character}_{int(time.time())}'  # noqa: E501
 
                 # todo: do not hardcode extension path
-                output_file = Path(f"extensions/stable_diffusion/outputs/{file}.png")
+                output_file = Path(
+                    f"extensions/{EXTENSION_DIRECTORY_NAME}/outputs/{file}.png"
+                )
                 output_file.parent.mkdir(parents=True, exist_ok=True)
 
                 image.save(output_file)

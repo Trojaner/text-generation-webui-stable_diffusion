@@ -152,7 +152,7 @@ stable_diffusion-generation_rules:
     actions:
       - name: "faceswaplab_enable"
       - name: "faceswaplab_set_source_face"
-        args: "file:///./extensions/stable_diffusion/assets/example_face.jpg"
+        args: "file:///{STABLE_DIFFUSION_EXTENSION_DIRECTORY}/assets/example_face.jpg"
 
 #-----------------#
 # POST PROCESSING #
@@ -189,7 +189,7 @@ stable_diffusion-faceswaplab_enabled: false
 ##   3. (recommended) FaceSwapLab face checkpoint: "checkpoint://example"
 ##      You can see the list of available checkpoints in the "models/faceswaplab/faces" directory inside your Stable Diffusion WebUI directory.
 ##      See https://github.com/glucauze/sd-webui-faceswaplab#build-and-use-checkpoints- for more on how to create face checkpoints.
-stable_diffusion-faceswaplab_source_face: "file:///./extensions/stable_diffusion/assets/example_face.jpg"
+stable_diffusion-faceswaplab_source_face: "file:///{STABLE_DIFFUSION_EXTENSION_DIRECTORY}/assets/example_face.jpg"
 
 ## Only swap faces if same gender.
 stable_diffusion-faceswaplab_same_gender_only: true
@@ -293,7 +293,7 @@ stable_diffusion-reactor_enabled: true
 ##   2. URL: "https://some-site.com/example.png"
 ##   3. (recommended) ReActor face model: "checkpoint://example"
 ##      You can see the list of available checkpoints in the "models/reactor/faces" directory inside your Stable Diffusion WebUI directory.
-stable_diffusion-reactor_source_face: "file:///./extensions/stable_diffusion/assets/example_face.jpg"
+stable_diffusion-reactor_source_face: "file:///{STABLE_DIFFUSION_EXTENSION_DIRECTORY}/assets/example_face.jpg"
 
 ## Sets the gender for the face in the source image (supported values: none, male, female)
 ## In other words, will only use the face with this gender as source face

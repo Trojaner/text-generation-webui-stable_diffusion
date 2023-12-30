@@ -1,6 +1,7 @@
 import html
 import re
 from dataclasses import asdict
+from os import path
 from typing import Any, List
 from modules import chat, shared
 from modules.logging_colors import logger
@@ -22,6 +23,8 @@ context: GenerationContext | None = None
 
 picture_processing_message = "*Is sending a picture...*"
 default_processing_message = shared.processing_message
+
+EXTENSION_DIRECTORY_NAME = path.basename(path.dirname(path.realpath(__file__)))
 
 
 def custom_generate_chat_prompt(text: str, state: dict, **kwargs: dict) -> str:

@@ -3,6 +3,7 @@ from dataclasses import MISSING, dataclass, field, fields
 from enum import Enum
 import requests
 from typing_extensions import Self
+from .script import EXTENSION_DIRECTORY_NAME
 
 default_description_prompt = """
 You are now a text generator for the Stable Diffusion AI image generator. You will generate a text prompt for it.
@@ -165,7 +166,9 @@ class UserPreferencesParams:
 class FaceSwapLabParams:
     faceswaplab_enabled: bool = field(default=False)
     faceswaplab_source_face: str = field(
-        default=("file:///extensions/stable_diffusion/assets/example_face.jpg")
+        default=(
+            f"file:///extensions/{EXTENSION_DIRECTORY_NAME}/assets/example_face.jpg"
+        )
     )
     faceswaplab_upscaling_enabled: bool = field(default=False)
     faceswaplab_upscaling_upscaler: str = field(default="RealESRGAN 4x+")
@@ -198,7 +201,9 @@ class FaceSwapLabParams:
 class ReactorParams:
     reactor_enabled: bool = field(default=False)
     reactor_source_face: str = field(
-        default=("file:///extensions/stable_diffusion/assets/example_face.jpg")
+        default=(
+            f"file:///extensions/{EXTENSION_DIRECTORY_NAME}/assets/example_face.jpg"
+        )
     )
     reactor_source_gender: ReactorFace = field(default=ReactorFace.NONE)
     reactor_target_gender: ReactorFace = field(default=ReactorFace.NONE)
