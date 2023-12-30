@@ -64,6 +64,7 @@ The maintainers and contributors of this extension cannot be held liable for any
 - ~~Some basic Gradio UI for fine-tuning the extension parameters at runtime~~
 - ~~Support [ReActor](https://github.com/Gourieff/sd-webui-reactor) as alternative faceswap integration [[api implementation](https://github.com/Gourieff/sd-webui-reactor/blob/main/scripts/reactor_api.py)]~~ 
 - ~~Character specific parameters~~
+- Tag system for grouping rules and making them mutually exclusive or dependent.
 - Sentiment analysis for defining image generation rules based on the sentiment of the generated text.
 - Custom LogitsProcessor or grammar implementation for generating proper and weighted SD image generation prompts.
 - Test with vanilla AUTOMATIC1111.
