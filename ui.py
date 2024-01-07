@@ -8,6 +8,7 @@ from .ext_modules.vram_manager import VramReallocationTarget, attempt_vram_reall
 from .params import (
     ContinuousModePromptGenerationMode,
     InteractiveModePromptGenerationMode,
+    IPAdapterAdapter,
 )
 from .params import StableDiffusionWebUiExtensionParams as Params
 from .params import TriggerMode
@@ -48,8 +49,14 @@ def render_ui(params: Params) -> None:
 
     with gr.Row():
         _render_chat_config(params)
+
+    with gr.Row():
         _render_faceswaplab_config(params)
         _render_reactor_config(params)
+
+    with gr.Row():
+        _render_faceid_config(params)
+        _render_ipadapter_config(params)
 
 
 def _render_connection_details(params: Params) -> None:
@@ -64,9 +71,7 @@ def _render_connection_details(params: Params) -> None:
                     value=lambda: params.api_username or "",
                 )
                 api_username.change(
-                    lambda new_api_username: params.update(
-                        Params(api_endpoint=new_api_username)
-                    ),
+                    lambda new_username: params.update({"api_username": new_username}),
                     api_username,
                     None,
                 )
@@ -79,7 +84,7 @@ def _render_connection_details(params: Params) -> None:
                 )
                 api_password.change(
                     lambda new_api_password: params.update(
-                        Params(api_endpoint=new_api_password)
+                        {"api_password": new_api_password}
                     ),
                     api_password,
                     None,
@@ -93,7 +98,7 @@ def _render_connection_details(params: Params) -> None:
                 )
                 api_endpoint.change(
                     lambda new_api_endpoint: params.update(
-                        Params(api_endpoint=new_api_endpoint)
+                        {"api_endpoint": new_api_endpoint}
                     ),
                     api_endpoint,
                     None,
@@ -121,7 +126,7 @@ def _render_prompts(params: Params) -> None:
                 value=lambda: params.base_prompt,
             )
             prompt.change(
-                lambda new_prompt: params.update(Params(base_prompt=new_prompt)),
+                lambda new_prompt: params.update({"base_prompt": new_prompt}),
                 prompt,
                 None,
             )
@@ -132,9 +137,7 @@ def _render_prompts(params: Params) -> None:
                 value=lambda: params.base_negative_prompt,
             )
             negative_prompt.change(
-                lambda new_prompt: params.update(
-                    Params(base_negative_prompt=new_prompt)
-                ),
+                lambda new_prompt: params.update({"base_negative_prompt": new_prompt}),
                 negative_prompt,
                 None,
             )
@@ -182,24 +185,22 @@ def _render_generation_parameters(params: Params) -> None:
             with gr.Row("Image size"):
                 width = gr.Number(
                     label="Width",
-                    minimum=64,
                     maximum=2048,
                     value=lambda: params.width,
                 )
                 width.change(
-                    lambda new_width: params.update(Params(width=new_width)),
+                    lambda new_width: params.update({"width": new_width}),
                     width,
                     None,
                 )
 
                 height = gr.Number(
                     label="Height",
-                    minimum=64,
                     maximum=2048,
                     value=lambda: params.height,
                 )
                 height.change(
-                    lambda new_height: params.update(Params(height=new_height)),
+                    lambda new_height: params.update({"height": new_height}),
                     height,
                     None,
                 )
@@ -214,7 +215,7 @@ def _render_generation_parameters(params: Params) -> None:
                     )
                     sampler_name.change(
                         lambda new_sampler_name: params.update(
-                            Params(sampler_name=new_sampler_name)
+                            {"sampler_name": new_sampler_name}
                         ),
                         sampler_name,
                         None,
@@ -230,9 +231,7 @@ def _render_generation_parameters(params: Params) -> None:
                         elem_id="steps_box",
                     )
                     steps.change(
-                        lambda new_steps: params.update(
-                            Params(sampling_steps=new_steps)
-                        ),
+                        lambda new_steps: params.update({"sampling_steps": new_steps}),
                         steps,
                         None,
                     )
@@ -247,7 +246,7 @@ def _render_generation_parameters(params: Params) -> None:
                     )
                     clip_skip.change(
                         lambda new_clip_skip: params.update(
-                            Params(clip_skip=new_clip_skip)
+                            {"clip_skip": new_clip_skip}
                         ),
                         clip_skip,
                         None,
@@ -259,9 +258,7 @@ def _render_generation_parameters(params: Params) -> None:
                 value=lambda: params.seed,
                 elem_id="seed_box",
             )
-            seed.change(
-                lambda new_seed: params.update(Params(seed=new_seed)), seed, None
-            )
+            seed.change(lambda new_seed: params.update({"seed": new_seed}), seed, None)
 
             cfg_scale = gr.Slider(
                 label="CFG Scale",
@@ -271,18 +268,18 @@ def _render_generation_parameters(params: Params) -> None:
                 elem_id="cfg_box",
             )
             cfg_scale.change(
-                lambda new_cfg_scale: params.update(Params(cfg_scale=new_cfg_scale)),
+                lambda new_cfg_scale: params.update({"cfg_scale": new_cfg_scale}),
                 cfg_scale,
                 None,
             )
 
             with gr.Column() as hr_options:
                 restore_faces = gr.Checkbox(
-                    label="Restore faces", value=lambda: params.enhance_faces_enabled
+                    label="Restore faces", value=lambda: params.restore_faces_enabled
                 )
                 restore_faces.change(
                     lambda new_value: params.update(
-                        Params(enhance_faces_enabled=new_value)
+                        {"restore_faces_enabled": new_value}
                     ),
                     restore_faces,
                     None,
@@ -292,9 +289,7 @@ def _render_generation_parameters(params: Params) -> None:
                     label="Upscale image", value=lambda: params.upscaling_enabled
                 )
                 enable_hr.change(
-                    lambda new_value: params.update(
-                        Params(upscaling_enabled=new_value)
-                    ),
+                    lambda new_value: params.update({"upscaling_enabled": new_value}),
                     enable_hr,
                     None,
                 )
@@ -318,7 +313,7 @@ def _render_generation_parameters(params: Params) -> None:
             )
             hr_upscaler.change(
                 lambda new_upscaler: params.update(
-                    Params(upscaling_upscaler=new_upscaler)
+                    {"upscaling_upscaler": new_upscaler}
                 ),
                 hr_upscaler,
                 None,
@@ -333,21 +328,23 @@ def _render_generation_parameters(params: Params) -> None:
                 step=0.1,
             )
             hr_scale.change(
-                lambda new_value: params.update(Params(upscaling_scale=new_value)),
+                lambda new_value: params.update({"upscaling_scale": new_value}),
                 hr_scale,
                 None,
             )
 
-            denoising_strength = gr.Slider(
+            hires_fix_denoising_strength = gr.Slider(
                 label="Denoising strength",
                 minimum=0,
                 maximum=1,
-                value=lambda: params.denoising_strength,
+                value=lambda: params.hires_fix_denoising_strength,
                 step=0.05,
             )
-            denoising_strength.change(
-                lambda new_value: params.update(Params(denoising_strength=new_value)),
-                denoising_strength,
+            hires_fix_denoising_strength.change(
+                lambda new_value: params.update(
+                    {"hires_fix_denoising_strength": new_value}
+                ),
+                hires_fix_denoising_strength,
                 None,
             )
 
@@ -364,9 +361,7 @@ def _render_faceswaplab_config(params: Params) -> None:
             )
 
             faceswap_enabled.change(
-                lambda new_enabled: params.update(
-                    Params(faceswaplab_enabled=new_enabled)
-                ),
+                lambda new_enabled: params.update({"faceswaplab_enabled": new_enabled}),
                 faceswap_enabled,
                 None,
             )
@@ -379,7 +374,7 @@ def _render_faceswaplab_config(params: Params) -> None:
 
             faceswap_source_face.change(
                 lambda new_source_face: params.update(
-                    Params(faceswaplab_source_face=new_source_face)
+                    {"faceswaplab_source_face": new_source_face}
                 ),
                 faceswap_source_face,
                 None,
@@ -396,7 +391,7 @@ def _render_reactor_config(params: Params) -> None:
             )
 
             reactor_enabled.change(
-                lambda new_enabled: params.update(Params(reactor_enabled=new_enabled)),
+                lambda new_enabled: params.update({"reactor_enabled": new_enabled}),
                 reactor_enabled,
                 None,
             )
@@ -409,9 +404,114 @@ def _render_reactor_config(params: Params) -> None:
 
             reactor_source_face.change(
                 lambda new_source_face: params.update(
-                    Params(reactor_source_face=new_source_face)
+                    {"reactor_source_face": new_source_face}
                 ),
                 reactor_source_face,
+                None,
+            )
+
+
+def _render_faceid_config(params: Params) -> None:
+    with gr.Accordion("FaceID", open=True, visible=sd_connected) as faceid_config:
+        connect_listeners.append(faceid_config)
+
+        with gr.Column():
+            faceid_enabled = gr.Checkbox(
+                label="Enabled", value=lambda: params.faceid_enabled
+            )
+
+            faceid_enabled.change(
+                lambda new_enabled: params.update({"faceid_enabled": new_enabled}),
+                faceid_enabled,
+                None,
+            )
+
+            faceid_source_face = gr.Text(
+                label="Source face",
+                placeholder="See documentation for details...",
+                value=lambda: params.faceid_source_face,
+            )
+
+            faceid_source_face.change(
+                lambda new_source_face: params.update(
+                    {"faceid_source_face": new_source_face}
+                ),
+                faceid_source_face,
+                None,
+            )
+
+            faceid_scale = gr.Slider(
+                label="Scale",
+                minimum=0,
+                maximum=1,
+                value=lambda: params.faceid_scale,
+                step=0.1,
+            )
+
+            faceid_scale.change(
+                lambda new_scale: params.update({"faceid_scale": new_scale}),
+                faceid_scale,
+                None,
+            )
+
+
+def _render_ipadapter_config(params: Params) -> None:
+    with gr.Accordion(
+        "IP Adapter", open=True, visible=sd_connected
+    ) as ipadapter_config:
+        connect_listeners.append(ipadapter_config)
+
+        with gr.Column():
+            ipadapter_enabled = gr.Checkbox(
+                label="Enabled", value=lambda: params.ipadapter_enabled
+            )
+
+            ipadapter_enabled.change(
+                lambda new_enabled: params.update({"ipadapter_enabled": new_enabled}),
+                ipadapter_enabled,
+                None,
+            )
+
+            ipadapter_adapter = gr.Dropdown(
+                label="Adapter",
+                choices=[adapter for adapter in IPAdapterAdapter],
+                value=lambda: params.ipadapter_adapter,
+                type="index",
+            )
+
+            ipadapter_adapter.change(
+                lambda index: params.update(
+                    {"ipadapter_adapter": IPAdapterAdapter.from_index(index)}
+                ),
+                ipadapter_adapter,
+                None,
+            )
+
+            ipadapter_reference_image = gr.Text(
+                label="Reference image",
+                placeholder="See documentation for details...",
+                value=lambda: params.ipadapter_reference_image,
+            )
+
+            ipadapter_reference_image.change(
+                lambda new_reference_image: params.update(
+                    {"ipadapter_reference_image": new_reference_image}
+                ),
+                ipadapter_reference_image,
+                None,
+            )
+
+            ipadapter_scale = gr.Slider(
+                label="Scale",
+                minimum=0,
+                maximum=1,
+                value=lambda: params.ipadapter_scale,
+                step=0.1,
+            )
+
+            ipadapter_scale.change(
+                lambda new_scale: params.update({"ipadapter_scale": new_scale}),
+                ipadapter_scale,
                 None,
             )
 
@@ -430,7 +530,7 @@ def _render_chat_config(params: Params) -> None:
 
             trigger_mode.change(
                 lambda index: params.update(
-                    Params(trigger_mode=TriggerMode.from_index(index))
+                    {"trigger_mode": TriggerMode.from_index(index)}
                 ),
                 trigger_mode,
                 None,
@@ -449,11 +549,11 @@ def _render_chat_config(params: Params) -> None:
 
             interactive_prompt_generation_mode.change(
                 lambda index: params.update(
-                    Params(
-                        interactive_mode_prompt_generation_mode=InteractiveModePromptGenerationMode.from_index(  # noqa: E501
+                    {
+                        "interactive_mode_prompt_generation_mode": InteractiveModePromptGenerationMode.from_index(  # noqa: E501
                             index
                         )
-                    )
+                    }
                 ),
                 interactive_prompt_generation_mode,
                 None,
@@ -472,11 +572,11 @@ def _render_chat_config(params: Params) -> None:
 
             continuous_prompt_generation_mode.change(
                 lambda index: params.update(
-                    Params(
-                        continuous_mode_prompt_generation_mode=ContinuousModePromptGenerationMode.from_index(  # noqa: E501
+                    {
+                        "continuous_mode_prompt_generation_mode": ContinuousModePromptGenerationMode.from_index(  # noqa: E501
                             index
                         )
-                    )
+                    }
                 ),
                 continuous_prompt_generation_mode,
                 None,
@@ -540,7 +640,7 @@ def _fetch_sd_options(sd_client: SdWebUIApi) -> None:
     try:
         sd_options = sd_client.get_options()
     except BaseException as error:
-        logger.error(error)
+        logger.error(error, exc_info=True)
         sd_connected = False
 
 
@@ -555,7 +655,7 @@ def _fetch_samplers(sd_client: SdWebUIApi) -> None:
             for sampler in sd_client.get_samplers()
         ]
     except BaseException as error:
-        logger.error(error)
+        logger.error(error, exc_info=True)
         sd_connected = False
 
 
@@ -570,7 +670,7 @@ def _fetch_upscalers(sd_client: SdWebUIApi) -> None:
             for upscaler in sd_client.get_upscalers()
         ]
     except BaseException as error:
-        logger.error(error)
+        logger.error(error, exc_info=True)
         sd_connected = False
 
 
@@ -587,7 +687,7 @@ def _fetch_checkpoints(sd_client: SdWebUIApi) -> None:
             checkpoint["title"] for checkpoint in sd_client.get_sd_models()
         ]
     except BaseException as error:
-        logger.error(error)
+        logger.error(error, exc_info=True)
         sd_connected = False
 
 
@@ -601,7 +701,7 @@ def _fetch_vaes(sd_client: SdWebUIApi) -> None:
         sd_current_vae = sd_options["sd_vae"]
         sd_vaes = [checkpoint["model_name"] for checkpoint in sd_client.get_sd_vae()]
     except BaseException as error:
-        logger.error(error)
+        logger.error(error, exc_info=True)
         sd_connected = False
 
 

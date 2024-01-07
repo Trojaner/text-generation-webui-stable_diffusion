@@ -29,7 +29,7 @@ def normalize_regex(regex: str) -> str:
     return regex
 
 
-def normalize_prompt(prompt: str, do_additional_normalization: bool = False) -> str:
+def normalize_prompt(prompt: str) -> str:
     if prompt is None:
         return ""
 
@@ -192,7 +192,9 @@ def generate_html_images_for_context(
 
             except Exception as e:
                 logger.error(
-                    f"[SD WebUI Integration] Failed to apply rule: {rule['regex']}: {e}"
+                    f"[SD WebUI Integration] Failed to apply rule: {rule['regex']}: %s",
+                    e,
+                    exc_info=True,
                 )
 
     context_prompt = ""
@@ -223,10 +225,8 @@ def generate_html_images_for_context(
             .lower()
         )
 
-    generated_prompt = _combine_prompts(
-        normalize_prompt(rules_prompt), normalize_prompt(context_prompt)
-    )
-    generated_negative_prompt = normalize_prompt(rules_negative_prompt)
+    generated_prompt = _combine_prompts(rules_prompt, normalize_prompt(context_prompt))
+    generated_negative_prompt = rules_negative_prompt
 
     full_prompt = _combine_prompts(generated_prompt, context.params.base_prompt)
 
@@ -238,12 +238,14 @@ def generate_html_images_for_context(
     (
         "[SD WebUI Integration] Using stable-diffusion-webui to generate images."
         + (
-            f"\n"
-            f"  Prompt: {full_prompt}\n"
-            f"  Negative Prompt: {full_negative_prompt}"
+            (
+                f"\n"
+                f"  Prompt: {full_prompt}\n"
+                f"  Negative Prompt: {full_negative_prompt}"
+            )
+            if context.params.debug_mode_enabled
+            else ""
         )
-        if context.params.debug_mode_enabled
-        else ""
     )
 
     try:
@@ -252,16 +254,29 @@ def generate_html_images_for_context(
             negative_prompt=full_negative_prompt,
             seed=context.params.seed,
             sampler_name=context.params.sampler_name,
-            enable_hr=context.params.upscaling_enabled,
+            full_quality=True,
+            enable_hr=context.params.upscaling_enabled
+            or context.params.hires_fix_enabled,
             hr_scale=context.params.upscaling_scale,
             hr_upscaler=context.params.upscaling_upscaler,
-            denoising_strength=context.params.denoising_strength,
+            denoising_strength=context.params.hires_fix_denoising_strength,
+            hr_sampler=context.params.hires_fix_sampler,
+            hr_force=context.params.hires_fix_enabled,
+            hr_second_pass_steps=context.params.hires_fix_sampling_steps
+            if context.params.hires_fix_enabled
+            else 0,
             steps=context.params.sampling_steps,
             cfg_scale=context.params.cfg_scale,
             width=context.params.width,
             height=context.params.height,
-            restore_faces=context.params.enhance_faces_enabled,
-            override_settings_restore_afterwards=True,
+            restore_faces=context.params.restore_faces_enabled,
+            faceid_enabled=context.params.faceid_enabled,
+            faceid_scale=context.params.faceid_scale,
+            faceid_image=context.params.faceid_source_face,
+            ipadapter_enabled=context.params.ipadapter_enabled,
+            ipadapter_adapter=context.params.ipadapter_adapter,
+            ipadapter_scale=context.params.ipadapter_scale,
+            ipadapter_image=context.params.ipadapter_reference_image,
             use_async=False,
         )
 
@@ -310,7 +325,9 @@ def generate_html_images_for_context(
                     image = response.image
                 except Exception as e:
                     logger.error(
-                        f"[SD WebUI Integration] FaceSwapLab failed to swap faces: {e}"
+                        "[SD WebUI Integration] FaceSwapLab failed to swap faces: %s",
+                        e,
+                        exc_info=True,
                     )
 
             if reactor_force_enabled or (
@@ -338,7 +355,9 @@ def generate_html_images_for_context(
                     image = response.image
                 except Exception as e:
                     logger.error(
-                        f"[SD WebUI Integration] ReActor failed to swap faces: {e}"
+                        "[SD WebUI Integration] ReActor failed to swap faces: %s",
+                        e,
+                        exc_info=True,
                     )
 
             if context.params.save_images:
@@ -386,10 +405,13 @@ def generate_html_images_for_context(
 
 
 def _combine_prompts(prompt1: str, prompt2: str) -> str:
-    if not prompt1 or prompt1 == "":
+    if prompt1 is None and prompt2 is None:
+        return ""
+
+    if prompt1 is None or prompt1 == "":
         return prompt2.strip(",").strip()
 
-    if not prompt2 or prompt2 == "":
+    if prompt2 is None or prompt2 == "":
         return prompt1.strip(",").strip()
 
     return prompt1.strip(",").strip() + ", " + prompt2.strip(",").strip()

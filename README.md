@@ -14,12 +14,14 @@ Demo:
 ## Features
 - Generate images using stable-diffusion-webui.
 - Well documented [settings](https://github.com/Trojaner/text-generation-webui-stable_diffusion/blob/main/settings.debug.yaml) file for easy configuration.
-- Supports face swapping for generating consistent character images without needing loras. See [Ethical Guidelines](#ethical-guidelines) for more information.
-- Multi-threading support - can handle concurrent chat sessions and requests.
+- Supports face swapping for generating consistent character images. See [Ethical Guidelines](#ethical-guidelines) for more information.
+- Supports generation rules for defining when and how to generate images. Can be used for character specific parameters, triggerwords for LoRA or for generating images based on the sentiment of the generated text, etc.
 
 ## Supported Stable Diffusion WebUI Extensions
 - [FaceSwapLab](https://github.com/glucauze/sd-webui-faceswaplab)
 - [ReActor](https://github.com/Gourieff/sd-webui-reactor)
+- [FaceID](https://github.com/vladmandic/automatic) (SD.Next feature)
+- [IP Adapter](https://github.com/vladmandic/automatic) (SD.Next feature)
 
 ## Installation
 - Open a shell with cmd_linux.sh/cmd_macos.sh/cmd_windows.bat inside text-generation-webui folder. 
@@ -53,7 +55,7 @@ text-generation-webui, Visual Studio Code and Python 3.10 are required for devel
 - Last but not least, ensure that you do not accidentally commit changes you might have made to the `settings.debug.yaml` or `launch.json` files unless intentional.
 
 ## Ethical Guidelines
-This extension integrates with various face swap extensions for stable-diffusion-webui and hence allows to swap faces in the generated images. This extension is not intended to for the creation of non-consensual deepfake content. Please use this extension responsibly and do not use it to create such content. The main purpose of the face swapping functionality is to allow the creation of consistent images of text-generation-webui characters. If you are unsure whether your use case is ethical, please refrain from using this extension.
+This extension integrates with various face swap extensions for stable-diffusion-webui and hence allows to swap faces in the generated images. This extension is not intended for the creation of non-consensual deepfake content. Please use this extension responsibly and do not use it to create such content. The main purpose of the face swapping functionality is to allow the creation of consistent images for text-generation-webui characters. If you are unsure whether your use case is ethical, please refrain from using this extension.
 
 The maintainers and contributors of this extension cannot be held liable for any misuse of this extension but will try to prevent such misuse by all means.
 

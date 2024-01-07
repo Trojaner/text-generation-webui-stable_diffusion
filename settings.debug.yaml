@@ -32,14 +32,13 @@ stable_diffusion-api_password: ""
 # IMAGE GENERATION PARAMETERS #
 #-----------------------------#
 
-stable_diffusion-base_prompt: "high resolution, detailed, realistic, vivid"
-stable_diffusion-base_negative_prompt: "disformed, disfigured, blurry, low resolution, unrealistic, pixelated, low quality, low res"
+stable_diffusion-base_prompt: "RAW photo, subject, 8k uhd, dslr, soft lighting, high quality, film grain, Fujifilm XT3"
+stable_diffusion-base_negative_prompt: "(deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime), text, cropped, out of frame, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck"
 stable_diffusion-sampler_name: "DPM SDE"
-stable_diffusion-sampling_steps: 7
-stable_diffusion-denoising_strength: 0.7
-stable_diffusion-width: 1024
-stable_diffusion-height: 1024
-stable_diffusion-cfg_scale: 2
+stable_diffusion-sampling_steps: 25
+stable_diffusion-width: 512
+stable_diffusion-height: 512
+stable_diffusion-cfg_scale: 6
 stable_diffusion-clip_skip: 1
 stable_diffusion-seed: -1
 
@@ -68,11 +67,11 @@ stable_diffusion-interactive_mode_prompt_generation_mode: "dynamic"
 
 ## Defines the regex pattern for the input message which triggers image generation in interactive mode.
 stable_diffusion-interactive_mode_input_trigger_regex: >-
-  .*(send|upload|add|show|attach|generate)\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)
+  .*(draw|paint|create|send|upload|add|show|attach|generate)\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)
 
 ## Defines the regex pattern for the generated output message which triggers image generation in interactive mode.
 stable_diffusion-interactive_mode_output_trigger_regex: >-
-  .*[*([](sends|uploads|adds|shows|attaches|generates|here (is|are))\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)
+  .*[*([]?(draws|paints|creates|sends|uploads|adds|shows|attaches|generates|here (is|are))\b.+?\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)
 
 ## Defines the regex pattern for extracting the subject of the message for dynamic prompt generation in interactive mode.
 ## Only used when prompt_generation_mode is set to "dynamic".
@@ -113,9 +112,9 @@ stable_diffusion-dont_stream_when_generating_images: true
 ## match: A list of where to match the regex. Available options:
 ## - "input": match on input text.
 ## - "input_sentence": match on any sentence in input text.
-#  - "output": match on generated output text.
-#  - "output_sentence": match on any sentence in generated output text.
-#  - "character_name": match on current character name (only if using gallery extension).
+## - "output": match on generated output text.
+## - "output_sentence": match on any sentence in generated output text.
+## - "character_name": match on current character name (only if using gallery extension).
 ## actions: A list of actions to perform if the regex matches.
 ## - name: The name of the action to perform.
 ##   Available options:
@@ -168,8 +167,20 @@ stable_diffusion-upscaling_upscaler: "RealESRGAN 4x+"
 ## Amount to upscale by (1 = 100%, 2 = 200%, etc.).
 stable_diffusion-upscaling_scale: 2
 
+## Sets if HiRes.fix should be enabled.
+stable_diffusion-hires_fix_enabled: false
+
+## Sets the sampler to use for HiRes.fix.
+stable_diffusion-hires_fix_sampler: "UniPC"
+
+## Sets the amount of steps for HiRes.fix.
+stable_diffusion-hires_sampling_steps: 10
+
+## Sets the denoising strength for HiRes.fix.
+stable_diffusion-hires_fix_denoising_strength: 0.2
+
 ## Sets if faces should be enhanced (or "restored") in generated images.
-stable_diffusion-enhance_faces_enabled: false
+stable_diffusion-restore_faces_enabled: false
 
 #-------------#
 # FACESWAPLAB #
@@ -237,28 +248,28 @@ stable_diffusion-faceswaplab_postprocessing_upscaling_scale: 2
 stable_diffusion-faceswaplab_postprocessing_upscaling_visibility: 1
 
 ## Sets if the face should be enhanced (or "restored") during swapping
-stable_diffusion-faceswaplab_enhance_face_enabled: false
+stable_diffusion-faceswaplab_restore_face_enabled: false
 
 ## Model to use for enhancing the face (CodeFormer, GFPGAN)
-stable_diffusion-faceswaplab_enhance_face_model: "CodeFormer"
+stable_diffusion-faceswaplab_restore_face_model: "CodeFormer"
 
-## Visibility of the enhanced face (0.0 - 1.0)
-stable_diffusion-faceswaplab_enhance_face_visibility: 1
+## Visibility of the restored face (0.0 - 1.0)
+stable_diffusion-faceswaplab_restore_face_visibility: 1
 
 ## Weight of the CodeFormer model (0.0 - 1.0)
-stable_diffusion-faceswaplab_enhance_face_codeformer_weight: 1
+stable_diffusion-faceswaplab_restore_face_codeformer_weight: 1
 
 ## Sets if the faces should be enhanced (or "restored") in the final result image after swapping
-stable_diffusion-faceswaplab_postprocessing_enhance_face_enabled: false
+stable_diffusion-faceswaplab_postprocessing_restore_face_enabled: false
 
 ## Model to use for restoring the faces (CodeFormer, GFPGAN)
-stable_diffusion-faceswaplab_postprocessing_enhance_face_model: "CodeFormer"
+stable_diffusion-faceswaplab_postprocessing_restore_face_model: "CodeFormer"
 
-## Visibility of the enhanced faces (0.0 - 1.0)
-stable_diffusion-faceswaplab_postprocessing_enhance_face_visibility: 1
+## Visibility of the restored faces (0.0 - 1.0)
+stable_diffusion-faceswaplab_postprocessing_restore_face_visibility: 1
 
 ## Weight of the CodeFormer model (0.0 - 1.0)
-stable_diffusion-faceswaplab_postprocessing_enhance_face_codeformer_weight: 1
+stable_diffusion-faceswaplab_postprocessing_restore_face_codeformer_weight: 1
 
 ## Sets if color corrections should be applied
 stable_diffusion-faceswaplab_color_corrections_enabled: false
@@ -315,19 +326,19 @@ stable_diffusion-reactor_source_face_index: 0
 stable_diffusion-reactor_target_face_index: 0
 
 ## Sets if the face should be enhanced (or "restored") after swapping
-stable_diffusion-reactor_enhance_face_enabled: false
+stable_diffusion-reactor_restore_face_enabled: false
 
 ## Model to use for restoring the face (CodeFormer, GFPGAN)
-stable_diffusion-reactor_enhance_face_model: "CodeFormer"
+stable_diffusion-reactor_restore_face_model: "CodeFormer"
 
-## Visibility of the enhanced face (0.0 - 1.0)
-stable_diffusion-reactor_enhance_face_visibility: 1
+## Visibility of the restored face (0.0 - 1.0)
+stable_diffusion-reactor_restore_face_visibility: 1
 
 ## Weight of the CodeFormer model (0.0 - 1.0)
-stable_diffusion-reactor_enhance_face_codeformer_weight: 1
+stable_diffusion-reactor_restore_face_codeformer_weight: 1
 
-## Upscale face first before enhancing it; otherwise enhances face first then upscales it instead
-stable_diffusion-reactor_enhance_face_upscale_first: false
+## Upscale face first before enhancing it; otherwise restores face first then upscales it instead
+stable_diffusion-reactor_restore_face_upscale_first: false
 
 ## Sets if the face should be upscaled.
 stable_diffusion-reactor_upscaling_enabled: false
@@ -352,3 +363,69 @@ stable_diffusion-reactor_model: "inswapper_128.onnx"
 ## CUDA recommended for faster inference if you have an NVIDIA GPU.
 ## Note: CUDA requires installation of the onnxruntime-gpu package instead of onnxruntime in stable-diffusion-webui
 stable_diffusion-reactor_device: "CPU"
+
+#---------#
+# FaceID  #
+#---------#
+
+## Apply face swapping using FaceID feature of SD.Next (a fork of AUTOMATIC1111).
+## See: https://github.com/vladmandic/automatic for SD.Next repository.
+##
+## Works much better than ReActor or FaceSwapLab as
+##   the face not actually swapped but instead directly
+##   generated like the source face while the image is
+##   still being generated.
+##
+## Works with stylized images too, e.g. 3D renders, drawings, cartoon, paintings etc.
+##
+## WARNING: DOES NOT WORK WITH VANILLA AUTOMATIC1111. YOU _MUST_ USE SD.NEXT INSTEAD.
+##
+## Requires "insightface", "ip_adapter" and "onnxruntime" (or "onnxruntime-gpu") PIP packages to be installed in SD.Next.
+
+## Sets if faces should be swapped in generated images.
+stable_diffusion-faceid_enabled: false
+
+## Sets the source image with the face to use for face swapping.
+## It's possible to set it in 2 difference ways:
+##   1. Local file: "file:///./example.jpg"
+##   2. URL: "https://some-site.com/example.png"
+stable_diffusion-faceid_source_face: "file:///{STABLE_DIFFUSION_EXTENSION_DIRECTORY}/assets/example_face.jpg"
+
+## Scale for the source face during image generation (0.0 - 1.0)
+stable_diffusion-faceid_scale: 0.5
+
+#-------------#
+# IP ADAPTER  #
+#-------------#
+
+## Adjust the IP Adapter integration feature of SD.Next (a fork of AUTOMATIC1111).
+## See: https://github.com/vladmandic/automatic for SD.Next repository.
+## See: https://ip-adapter.github.io/ for IP Adapter paper.
+##
+## Can be used for face swapping as well similar to the FaceID feature
+## (by using the "Plus Face" or "Full face" adapters).
+##
+## WARNING: DOES NOT WORK WITH VANILLA AUTOMATIC1111. YOU _MUST_ USE SD.NEXT INSTEAD.
+## Requires "ip_adapter" and "onnxruntime" (or "onnxruntime-gpu") PIP packages to be installed in SD.Next.
+
+## Sets if IP adapter should be enabled.
+stable_diffusion-ipadapter_enabled: false
+
+## Sets the source image to use for face swapping.
+## It's possible to set it in 2 difference ways:
+##   1. Local file: "file:///./example.jpg"
+##   2. URL: "https://some-site.com/example.png"
+stable_diffusion-ipadapter_reference_image: "file:///{STABLE_DIFFUSION_EXTENSION_DIRECTORY}/assets/example_face.jpg"
+
+## The adapter to use.
+## Possible values:
+## - "Base"
+## - "Light"
+## - "Plus"
+## - "Plus Face"
+## - "Full face"
+## - "Base SDXL"
+stable_diffusion-ipadapter_adapter: "Base"
+
+## Scale for the source face during image generation (0.0 - 1.0)
+stable_diffusion-ipadapter_scale: 0.5

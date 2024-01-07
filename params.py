@@ -1,8 +1,9 @@
 import base64
-from dataclasses import MISSING, dataclass, field, fields
+from dataclasses import dataclass, field, fields
 from enum import Enum
 import requests
 from typing_extensions import Self
+from modules.logging_colors import logger
 
 default_description_prompt = """
 You are now a text generator for the Stable Diffusion AI image generator. You will generate a text prompt for it.
@@ -26,6 +27,26 @@ class TriggerMode(str, Enum):
     @classmethod
     def from_index(cls, index: int) -> Self:
         return list(TriggerMode)[index]  # type: ignore
+
+    def __str__(self) -> str:
+        return self
+
+
+class IPAdapterAdapter(str, Enum):
+    BASE = "Base"
+    LIGHT = "Light"
+    PLUS = "Plus"
+    PLUS_FACE = "Plus Face"
+    FULL_FACE = "Full face"
+    BASE_SDXL = "Base SDXL"
+
+    @classmethod
+    def index_of(cls, mode: Self) -> int:
+        return list(IPAdapterAdapter).index(mode)
+
+    @classmethod
+    def from_index(cls, index: int) -> Self:
+        return list(IPAdapterAdapter)[index]  # type: ignore
 
     def __str__(self) -> str:
         return self
@@ -87,14 +108,29 @@ class StableDiffusionClientParams:
 
 @dataclass
 class StableDiffusionGenerationParams:
-    base_prompt: str = field(default="high resolution, detailed, realistic, vivid")
-    base_negative_prompt: str = field(default="ugly, disformed, disfigured, immature")
-    sampler_name: str = field(default="UniPC")
-    denoising_strength: float = field(default=0.7)
+    base_prompt: str = field(
+        default=(
+            "RAW photo, subject, 8k uhd, dslr, soft lighting, high quality, "
+            "film grain, Fujifilm XT3"
+        )
+    )
+    base_negative_prompt: str = field(
+        default=(
+            "(deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, "
+            "sketch, cartoon, drawing, anime), text, cropped, out of frame, "
+            "worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, "
+            "mutilated, extra fingers, mutated hands, poorly drawn hands, "
+            "poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, "
+            "bad proportions, extra limbs, cloned face, disfigured, gross proportions, "
+            "malformed limbs, missing arms, missing legs, extra arms, extra legs, "
+            "fused fingers, too many fingers, long neck"
+        )
+    )
+    sampler_name: str = field(default="DPM SDE")
     sampling_steps: int = field(default=25)
     width: int = field(default=512)
     height: int = field(default=512)
-    cfg_scale: float = field(default=7)
+    cfg_scale: float = field(default=6)
     clip_skip: int = field(default=1)
     seed: int = field(default=-1)
 
@@ -104,7 +140,11 @@ class StableDiffusionPostProcessingParams:
     upscaling_enabled: bool = field(default=False)
     upscaling_upscaler: str = field(default="RealESRGAN 4x+")
     upscaling_scale: float = field(default=2)
-    enhance_faces_enabled: bool = field(default=False)
+    hires_fix_enabled: bool = field(default=False)
+    hires_fix_denoising_strength: float = field(default=0.2)
+    hires_fix_sampler: str = field(default="UniPC")
+    hires_fix_sampling_steps: int = field(default=10)
+    restore_faces_enabled: bool = field(default=False)
 
 
 @dataclass
@@ -162,6 +202,25 @@ class UserPreferencesParams:
 
 
 @dataclass
+class FaceIDParams:
+    faceid_enabled: bool = field(default=False)
+    faceid_source_face: str = field(
+        default=("file:///extensions/stable_diffusion/assets/example_face.jpg")
+    )
+    faceid_scale: float = field(default=0.5)
+
+
+@dataclass
+class IPAdapterParams:
+    ipadapter_enabled: bool = field(default=False)
+    ipadapter_adapter: IPAdapterAdapter = field(default=IPAdapterAdapter.BASE)
+    ipadapter_reference_image: str = field(
+        default=("file:///extensions/stable_diffusion/assets/example_face.jpg")
+    )
+    ipadapter_scale: float = field(default=0.5)
+
+
+@dataclass
 class FaceSwapLabParams:
     faceswaplab_enabled: bool = field(default=False)
     faceswaplab_source_face: str = field(
@@ -179,14 +238,14 @@ class FaceSwapLabParams:
     faceswaplab_sort_by_size: bool = field(default=True)
     faceswaplab_source_face_index: int = field(default=0)
     faceswaplab_target_face_index: int = field(default=0)
-    faceswaplab_enhance_face_enabled: bool = field(default=False)
-    faceswaplab_enhance_face_model: str = field(default="CodeFormer")
-    faceswaplab_enhance_face_visibility: float = field(default=1)
-    faceswaplab_enhance_face_codeformer_weight: float = field(default=1)
-    faceswaplab_postprocessing_enhance_face_enabled: bool = field(default=False)
-    faceswaplab_postprocessing_enhance_face_model: str = field(default="CodeFormer")
-    faceswaplab_postprocessing_enhance_face_visibility: float = field(default=1)
-    faceswaplab_postprocessing_enhance_face_codeformer_weight: float = field(default=1)
+    faceswaplab_restore_face_enabled: bool = field(default=False)
+    faceswaplab_restore_face_model: str = field(default="CodeFormer")
+    faceswaplab_restore_face_visibility: float = field(default=1)
+    faceswaplab_restore_face_codeformer_weight: float = field(default=1)
+    faceswaplab_postprocessing_restore_face_enabled: bool = field(default=False)
+    faceswaplab_postprocessing_restore_face_model: str = field(default="CodeFormer")
+    faceswaplab_postprocessing_restore_face_visibility: float = field(default=1)
+    faceswaplab_postprocessing_restore_face_codeformer_weight: float = field(default=1)
     faceswaplab_color_corrections_enabled: bool = field(default=False)
     faceswaplab_mask_erosion_factor: float = field(default=1)
     faceswaplab_mask_improved_mask_enabled: bool = field(default=False)
@@ -204,11 +263,11 @@ class ReactorParams:
     reactor_target_gender: ReactorFace = field(default=ReactorFace.NONE)
     reactor_source_face_index: int = field(default=0)
     reactor_target_face_index: int = field(default=0)
-    reactor_enhance_face_enabled: bool = field(default=False)
-    reactor_enhance_face_model: str = field(default="CodeFormer")
-    reactor_enhance_face_visibility: float = field(default=1)
-    reactor_enhance_face_codeformer_weight: float = field(default=1)
-    reactor_enhance_face_upscale_first: bool = field(default=False)
+    reactor_restore_face_enabled: bool = field(default=False)
+    reactor_restore_face_model: str = field(default="CodeFormer")
+    reactor_restore_face_visibility: float = field(default=1)
+    reactor_restore_face_codeformer_weight: float = field(default=1)
+    reactor_restore_face_upscale_first: bool = field(default=False)
     reactor_upscaling_enabled: bool = field(default=False)
     reactor_upscaling_upscaler: str = field(default="RealESRGAN 4x+")
     reactor_upscaling_scale: float = field(default=2)
@@ -226,27 +285,23 @@ class StableDiffusionWebUiExtensionParams(
     UserPreferencesParams,
     FaceSwapLabParams,
     ReactorParams,
+    FaceIDParams,
+    IPAdapterParams,
 ):
     display_name: str = field(default="Stable Diffusion")
     is_tab: bool = field(default=True)
     debug_mode_enabled: bool = field(default=False)
 
-    def update(self, params: Self) -> None:
+    def update(self, params: dict) -> None:
         """
         Updates the parameters.
         """
 
-        for f in fields(self):
-            val = getattr(params, f.name)
+        for f in params.keys():
+            assert f in [x.name for x in fields(self)], f"Invalid field for params: {f}"
 
-            if val == f.default or val == MISSING:
-                continue
-
-            if f.default_factory != MISSING:
-                if val == f.default_factory():
-                    continue
-
-            setattr(self, f.name, val)
+            val = params[f]
+            setattr(self, f, val)
 
     def normalize(self) -> None:
         """
@@ -269,26 +324,75 @@ class StableDiffusionWebUiExtensionParams(
                 ReactorFace[self.reactor_target_gender.upper()] or ReactorFace.NONE
             )
 
+        # Todo: images are redownloaded and files are reread every time a text is generated. # noqa E501
+        # This happens because normalize() is called on every generation and the downloaded values are not cached. # noqa E501
+
         if self.faceswaplab_enabled and (
             self.faceswaplab_source_face.startswith("http://")
             or self.faceswaplab_source_face.startswith("https://")
         ):
-            # todo: image may not be png format but for now it does not really matter
-            self.faceswaplab_source_face = (
-                "data:image/png;base64,"
-                + base64.b64encode(
+            try:
+                self.faceswaplab_source_face = base64.b64encode(
                     requests.get(self.faceswaplab_source_face).content
                 ).decode()
-            )
+            except Exception as e:
+                logger.exception(
+                    "Failed to load FaceSwapLab source face image: %s", e, exc_info=True
+                )
+                self.faceswaplab_enabled = False
 
         if self.reactor_enabled and (
             self.reactor_source_face.startswith("http://")
             or self.reactor_source_face.startswith("https://")
         ):
-            # todo: same here issue as with faceswaplab above
-            self.reactor_source_face = (
-                "data:image/png;base64,"
-                + base64.b64encode(
+            try:
+                self.reactor_source_face = base64.b64encode(
                     requests.get(self.reactor_source_face).content
                 ).decode()
-            )
+            except Exception as e:
+                logger.exception(
+                    "Failed to load ReActor source face image: %s", e, exc_info=True
+                )
+                self.reactor_enabled = False
+
+        if self.faceid_enabled:
+            try:
+                if self.faceid_source_face.startswith(
+                    "http://"
+                ) or self.faceid_source_face.startswith("https://"):
+                    self.faceid_source_face = base64.b64encode(
+                        requests.get(self.faceid_source_face).content
+                    ).decode()
+
+                if self.faceid_source_face.startswith("file:///"):
+                    with open(
+                        self.faceid_source_face.replace("file:///", ""), "rb"
+                    ) as f:
+                        self.faceid_source_face = base64.b64encode(f.read()).decode()
+            except Exception as e:
+                logger.exception(
+                    "Failed to load FaceID source face image: %s", e, exc_info=True
+                )
+                self.faceid_enabled = False
+
+        if self.ipadapter_enabled:
+            try:
+                if self.ipadapter_reference_image.startswith(
+                    "http://"
+                ) or self.ipadapter_reference_image.startswith("https://"):
+                    self.ipadapter_reference_image = base64.b64encode(
+                        requests.get(self.ipadapter_reference_image).content
+                    ).decode()
+
+                if self.ipadapter_reference_image.startswith("file:///"):
+                    with open(
+                        self.ipadapter_reference_image.replace("file:///", ""), "rb"
+                    ) as f:
+                        self.ipadapter_reference_image = base64.b64encode(
+                            f.read()
+                        ).decode()
+            except Exception as e:
+                logger.exception(
+                    "Failed to load IP Adapter reference image: %s", e, exc_info=True
+                )
+                self.ipadapter_enabled = False

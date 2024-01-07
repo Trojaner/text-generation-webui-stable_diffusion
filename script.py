@@ -141,6 +141,17 @@ def history_modifier(history: List[str]) -> List[str]:
     return history
 
 
+def cleanup_context() -> None:
+    context = get_current_context()
+
+    if context is not None:
+        context.is_completed = True
+
+    set_current_context(None)
+    shared.processing_message = default_processing_message
+    pass
+
+
 def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
     """
     Modifies the LLM output before it gets presented.
@@ -149,11 +160,11 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
     and the original version goes into history['internal'].
     """
 
-    if not is_chat:
-        set_current_context(None)
-        return string
-
     global params
+
+    if not is_chat:
+        cleanup_context()
+        return string
 
     context = get_current_context()
 
@@ -185,11 +196,15 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
                 set_current_context(context)
 
     if context is None or context.is_completed:
-        set_current_context(None)
+        cleanup_context()
         return string
 
     context.state = state
     context.output_text = string
+
+    if "<img " in string:
+        cleanup_context()
+        return string
 
     try:
         images_html, prompt, _, _, _ = generate_html_images_for_context(context)
@@ -206,12 +221,9 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
 
     except Exception as e:
         string += "\n\n*Image generation has failed. Check logs for errors.*"
-        logger.error(e)
+        logger.error(e, exc_info=True)
 
-    context.is_completed = True
-    set_current_context(None)
-    shared.processing_message = default_processing_message
-
+    cleanup_context()
     return string
 
 

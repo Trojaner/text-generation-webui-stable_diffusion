@@ -1,6 +1,4 @@
-import threading
 from dataclasses import dataclass
-from typing import cast
 from .params import StableDiffusionWebUiExtensionParams
 from .sd_client import SdWebUIApi
 
@@ -17,7 +15,7 @@ class GenerationContext(object):
 
 # Create a thread-local state for multi-threading support in case
 # multiple sessions run concurrently at the same time.
-_local_state = threading.local()
+_current_context: GenerationContext | None = None
 
 
 def get_current_context() -> GenerationContext | None:
@@ -25,9 +23,7 @@ def get_current_context() -> GenerationContext | None:
     Gets the current generation context (thread-safe).
     """
 
-    global _local_state
-    _local_state.current_context = getattr(_local_state, "current_context", None)
-    return cast(GenerationContext | None, _local_state.current_context)
+    return _current_context
 
 
 def set_current_context(context: GenerationContext | None) -> None:
@@ -35,5 +31,5 @@ def set_current_context(context: GenerationContext | None) -> None:
     Sets the current generation context (thread-safe).
     """
 
-    global _local_state
-    _local_state.current_context = context
+    global _current_context
+    _current_context = context

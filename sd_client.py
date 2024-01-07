@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import Any, List
 from PIL import Image
-from webuiapi import WebUIApi
+from webuiapi import HiResUpscaler, WebUIApi, WebUIApiResult
 from .params import FaceSwapLabParams, ReactorParams
 
 
@@ -46,6 +46,130 @@ class SdWebUIApi(WebUIApi):
 
         return self.post_and_get_api_result(  # type: ignore
             f"{self.baseurl}/reload-checkpoint", "", use_async
+        )
+
+    def txt2img(
+        self,
+        enable_hr: bool = False,
+        denoising_strength: float = 0.7,
+        firstphase_width: int = 0,
+        firstphase_height: int = 0,
+        hr_scale: float = 2,
+        hr_upscaler: str = HiResUpscaler.Latent,
+        hr_second_pass_steps: int = 0,
+        hr_resize_x: float = 0,
+        hr_resize_y: float = 0,
+        hr_sampler: str = "UniPC",
+        hr_force: bool = False,
+        prompt: str = "",
+        styles: List[str] = [],
+        seed: int = -1,
+        subseed: int = -1,
+        subseed_strength: float = 0.0,
+        seed_resize_from_h: float = 0,
+        seed_resize_from_w: float = 0,
+        sampler_name: str | None = None,
+        batch_size: int = 1,
+        n_iter: int = 1,
+        steps: int | None = None,
+        cfg_scale: float = 6.0,
+        width: int = 512,
+        height: int = 512,
+        restore_faces: bool = False,
+        tiling: bool = False,
+        do_not_save_samples: bool = False,
+        do_not_save_grid: bool = False,
+        negative_prompt: str = "",
+        eta: float = 1.0,
+        s_churn: int = 0,
+        s_tmax: int = 0,
+        s_tmin: int = 0,
+        s_noise: int = 1,
+        script_args: dict | None = None,
+        script_name: str | None = None,
+        send_images: bool = True,
+        save_images: bool = False,
+        full_quality: bool = True,
+        faceid_enabled: bool = False,
+        faceid_scale: float = 0.7,
+        faceid_image: str | None = None,
+        ipadapter_enabled: bool = False,
+        ipadapter_adapter: str = "Base",
+        ipadapter_scale: float = 0.7,
+        ipadapter_image: str | None = None,
+        alwayson_scripts: dict = {},
+        use_async: bool = False,
+    ) -> Task[WebUIApiResult] | WebUIApiResult:
+        if sampler_name is None:
+            sampler_name = self.default_sampler
+        if steps is None:
+            steps = self.default_steps
+        if script_args is None:
+            script_args = {}
+        payload = {
+            "enable_hr": enable_hr or hr_force,
+            "hr_scale": hr_scale,
+            "hr_upscaler": hr_upscaler,
+            "hr_second_pass_steps": hr_second_pass_steps,
+            "hr_resize_x": hr_resize_x,
+            "hr_resize_y": hr_resize_y,
+            "hr_force": hr_force,  # SD.Next (no equivalent in AUTOMATIC1111)
+            "hr_sampler_name": hr_sampler,  # AUTOMATIC1111
+            "latent_sampler": hr_sampler,  # SD.Next
+            "denoising_strength": denoising_strength,
+            "firstphase_width": firstphase_width,
+            "firstphase_height": firstphase_height,
+            "prompt": prompt,
+            "styles": styles,
+            "seed": seed,
+            "full_quality": full_quality,  # SD.Next
+            "subseed": subseed,
+            "subseed_strength": subseed_strength,
+            "seed_resize_from_h": seed_resize_from_h,
+            "seed_resize_from_w": seed_resize_from_w,
+            "batch_size": batch_size,
+            "n_iter": n_iter,
+            "steps": steps,
+            "cfg_scale": cfg_scale,
+            "width": width,
+            "height": height,
+            "restore_faces": restore_faces,
+            "tiling": tiling,
+            "do_not_save_samples": do_not_save_samples,
+            "do_not_save_grid": do_not_save_grid,
+            "negative_prompt": negative_prompt,
+            "eta": eta,
+            "s_churn": s_churn,
+            "s_tmax": s_tmax,
+            "s_tmin": s_tmin,
+            "s_noise": s_noise,
+            "sampler_name": sampler_name,
+            "send_images": send_images,
+            "save_images": save_images,
+        }
+
+        if faceid_enabled:
+            payload["face_id"] = {
+                "scale": faceid_scale,
+                "image": faceid_image,
+            }
+
+        if alwayson_scripts:
+            payload["alwayson_scripts"] = alwayson_scripts
+
+        if script_name:
+            payload["script_name"] = script_name
+            payload["script_args"] = script_args
+
+        if ipadapter_enabled:
+            payload["ip_adapter"] = {
+                "adapter": ipadapter_adapter,
+                "scale": ipadapter_scale,
+                "image": ipadapter_image,
+            }
+
+        return self.post_and_get_api_result(
+            f"{self.baseurl}/txt2img", payload, use_async
         )
 
     def reactor_swap_face(
@@ -91,12 +215,12 @@ class SdWebUIApi(WebUIApi):
             else "None",
             "scale": params.reactor_upscaling_scale,
             "upscale_visibility": params.reactor_upscaling_visibility,
-            "face_restorer": params.reactor_enhance_face_model
-            if params.reactor_enhance_face_enabled
+            "face_restorer": params.reactor_restore_face_model
+            if params.reactor_restore_face_enabled
             else "None",
-            "restorer_visibility": params.reactor_enhance_face_visibility,
-            "codeformer_weight": params.reactor_enhance_face_codeformer_weight,
-            "restore_first": 0 if params.reactor_enhance_face_upscale_first else 1,
+            "restorer_visibility": params.reactor_restore_face_visibility,
+            "codeformer_weight": params.reactor_restore_face_codeformer_weight,
+            "restore_first": 0 if params.reactor_restore_face_upscale_first else 1,
             "model": params.reactor_model,
             "gender_source": params.reactor_source_gender,
             "gender_target": params.reactor_target_gender,
@@ -174,11 +298,11 @@ class SdWebUIApi(WebUIApi):
                         "inpainting_seed": 0,
                     },
                     "swapping_options": {
-                        "face_restorer_name": params.faceswaplab_enhance_face_model
-                        if params.faceswaplab_enhance_face_enabled
+                        "face_restorer_name": params.faceswaplab_restore_face_model
+                        if params.faceswaplab_restore_face_enabled
                         else "None",
-                        "restorer_visibility": params.faceswaplab_enhance_face_visibility,  # noqa: E501
-                        "codeformer_weight": params.faceswaplab_enhance_face_codeformer_weight,  # noqa: E501
+                        "restorer_visibility": params.faceswaplab_restore_face_visibility,  # noqa: E501
+                        "codeformer_weight": params.faceswaplab_restore_face_codeformer_weight,  # noqa: E501
                         "upscaler_name": params.faceswaplab_upscaling_upscaler
                         if params.faceswaplab_upscaling_enabled
                         else "None",
@@ -199,11 +323,11 @@ class SdWebUIApi(WebUIApi):
                 }
             ],
             "postprocessing": {
-                "face_restorer_name": params.faceswaplab_postprocessing_enhance_face_model  # noqa: E501
-                if params.faceswaplab_postprocessing_enhance_face_enabled
+                "face_restorer_name": params.faceswaplab_postprocessing_restore_face_model  # noqa: E501
+                if params.faceswaplab_postprocessing_restore_face_enabled
                 else "None",
-                "restorer_visibility": params.faceswaplab_postprocessing_enhance_face_visibility,  # noqa: E501
-                "codeformer_weight": params.faceswaplab_postprocessing_enhance_face_codeformer_weight,  # noqa: E501
+                "restorer_visibility": params.faceswaplab_postprocessing_restore_face_visibility,  # noqa: E501
+                "codeformer_weight": params.faceswaplab_postprocessing_restore_face_codeformer_weight,  # noqa: E501
                 "upscaler_name": params.faceswaplab_postprocessing_upscaling_upscaler
                 if params.faceswaplab_postprocessing_upscaling_enabled
                 else "None",
