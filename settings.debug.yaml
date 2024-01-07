@@ -380,7 +380,7 @@ stable_diffusion-reactor_device: "CPU"
 ##
 ## WARNING: DOES NOT WORK WITH VANILLA AUTOMATIC1111. YOU _MUST_ USE SD.NEXT INSTEAD.
 ##
-## Requires "insightface", "ip_adapter" and "onnxruntime" (or "onnxruntime-gpu") PIP packages to be installed in SD.Next.
+## Requires "insightface", "ip_adapter" and "onnxruntime-gpu" PIP packages to be installed in SD.Next.
 
 ## Sets if faces should be swapped in generated images.
 stable_diffusion-faceid_enabled: false
@@ -406,7 +406,7 @@ stable_diffusion-faceid_scale: 0.5
 ## (by using the "Plus Face" or "Full face" adapters).
 ##
 ## WARNING: DOES NOT WORK WITH VANILLA AUTOMATIC1111. YOU _MUST_ USE SD.NEXT INSTEAD.
-## Requires "ip_adapter" and "onnxruntime" (or "onnxruntime-gpu") PIP packages to be installed in SD.Next.
+## Requires "ip_adapter" and "onnxruntime-gpu" PIP packages to be installed in SD.Next.
 
 ## Sets if IP adapter should be enabled.
 stable_diffusion-ipadapter_enabled: false
