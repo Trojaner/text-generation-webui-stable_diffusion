@@ -34,7 +34,7 @@ Requires stable-diffusion-webui with enabled API.
 - [ReActor](https://github.com/Gourieff/sd-webui-reactor)
 - [FaceID](https://github.com/vladmandic/automatic) 
   - Can be used to force a specific face to be used while generating images.
-  - Unlike FaceSwapLab and ReActor and FaceID, FaceID supports various art styles.
+  - Unlike FaceSwapLab and ReActor, FaceID supports various art styles such as cartoon, anime, etc.
   - Requires SD.Next.
   - The insightface, ip_adapter and onnxruntime-gpu PIP packages must be installed for SD.Next first.
 - [IP Adapters](https://github.com/vladmandic/automatic) 
