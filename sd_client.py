@@ -1,4 +1,5 @@
 import base64
+import json
 from asyncio import Task
 from dataclasses import dataclass
 from io import BytesIO
@@ -91,8 +92,15 @@ class SdWebUIApi(WebUIApi):
         save_images: bool = False,
         full_quality: bool = True,
         faceid_enabled: bool = False,
-        faceid_scale: float = 0.7,
+        faceid_mode: list[str] = ["FaceID", "FaceSwap"],
+        faceid_model: str = "FaceID Plus v2",
         faceid_image: str | None = None,
+        faceid_scale: float = 1,
+        faceid_structure: float = 1,
+        faceid_rank: int = 128,
+        faceid_tokens: int = 4,
+        faceid_override_sampler: bool = True,
+        faceid_cache_model: bool = False,
         ipadapter_enabled: bool = False,
         ipadapter_adapter: str = "Base",
         ipadapter_scale: float = 0.7,
@@ -150,9 +158,18 @@ class SdWebUIApi(WebUIApi):
 
         if faceid_enabled:
             payload["face_id"] = {
-                "scale": faceid_scale,
+                "mode": faceid_mode,
+                "model": faceid_model,
                 "image": faceid_image,
+                "scale": faceid_scale,
+                "structure": faceid_structure,
+                "rank": faceid_rank,
+                "override_sampler": faceid_override_sampler,
+                "tokens": faceid_tokens,
+                "cache_model": faceid_cache_model,
             }
+            
+            print(json.dumps(payload["face_id"], indent=2))
 
         if alwayson_scripts:
             payload["alwayson_scripts"] = alwayson_scripts

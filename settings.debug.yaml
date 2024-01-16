@@ -391,8 +391,34 @@ stable_diffusion-faceid_enabled: false
 ##   2. URL: "https://some-site.com/example.png"
 stable_diffusion-faceid_source_face: "file:///{STABLE_DIFFUSION_EXTENSION_DIRECTORY}/assets/example_face.jpg"
 
-## Scale for the source face during image generation (0.0 - 1.0)
-stable_diffusion-faceid_scale: 0.5
+## FaceID mode
+stable_diffusion-faceid_mode: ["FaceID", "FaceSwap"]
+
+## Model to use for FaceID
+## Available options:
+## - FaceID Base
+## - FaceID Plus
+## - FaceID Plus v2
+## - FaceID XL
+stable_diffusion-faceid_model: "FaceID Plus v2"
+
+## Use recommended sampler for FaceID
+stable_diffusion-faceid_override_sampler: true
+
+## Cache FaceID model for faster generation
+stable_diffusion-faceid_cache_model: false
+
+## FaceID strength (0.0 - 2.0)
+stable_diffusion-faceid_strength: 1.0
+
+## FaceID structure (0.0 - 1.0)
+stable_diffusion-faceid_structure: 1.0
+
+## FaceID rank (4 - 256)
+stable_diffusion-faceid_rank: 128
+
+## FaceID token count (1 - 16)
+stable_diffusion-faceid_tokens: 4
 
 #-------------#
 # IP ADAPTER  #
@@ -403,7 +429,7 @@ stable_diffusion-faceid_scale: 0.5
 ## See: https://ip-adapter.github.io/ for IP Adapter paper.
 ##
 ## Can be used for face swapping as well similar to the FaceID feature
-## (by using the "Plus Face" or "Full face" adapters).
+## (by using the "Plus Face" or the "Full face" adapter).
 ##
 ## WARNING: DOES NOT WORK WITH VANILLA AUTOMATIC1111. YOU _MUST_ USE SD.NEXT INSTEAD.
 ## Requires "ip_adapter" and "onnxruntime-gpu" PIP packages to be installed in SD.Next.

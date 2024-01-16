@@ -207,7 +207,14 @@ class FaceIDParams:
     faceid_source_face: str = field(
         default=("file:///extensions/stable_diffusion/assets/example_face.jpg")
     )
-    faceid_scale: float = field(default=0.5)
+    faceid_mode: list[str] = field(default_factory=lambda: ["FaceID", "FaceSwap"])
+    faceid_model: str = field(default="FaceID Plus v2")
+    faceid_override_sampler: bool = field(default=True)
+    faceid_strength: float = field(default=1.0)
+    faceid_structure: float = field(default=1.0)
+    faceid_rank: int = field(default=128)
+    faceid_tokens: int = field(default=4)
+    faceid_cache_model: bool = field(default=False)
 
 
 @dataclass

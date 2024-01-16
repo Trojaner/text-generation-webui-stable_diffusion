@@ -16,7 +16,7 @@ Requires stable-diffusion-webui with enabled API.
 > This extension has been mainly developed with [SD.Next](https://github.com/vladmandic/automatic) instead of [AUTOMATIC1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui). Please report any potential bugs you come across when using AUTOMATIC1111 instead.  
 
 > [!NOTE]  
-> Some features, such as IP Adapters, FaceID and clip skip, are only available when using SD.Next.
+> Some features, such as IP Adapter, FaceID and clip skip, are only available when using SD.Next.
 
 ## Features
 - Dynamically generate images in text-generation-webui chat by utlizing the SD.Next or AUTOMATIC1111 API.
@@ -27,7 +27,7 @@ Requires stable-diffusion-webui with enabled API.
 - Use various image generation modes such as continous (generate image on each message) and interactive (generate image if asked so in chat).
 - Define generation rules for when and how to generate images. Can be used for character specific prompts and parameters, dynamically adding LoRAs on triggerwords, etc.
 - Face swap for generating consistent character images using FaceLabSwap, ReActor or FaceID (see [Ethical Guidelines](#ethical-guidelines)).
-- Generate images based roughly on a base reference image using IP Adapters.
+- Generate images based roughly on a base reference image using IP Adapter.
 
 ## Supported Stable Diffusion WebUI Extensions and Features
 - [FaceSwapLab](https://github.com/glucauze/sd-webui-faceswaplab)
@@ -37,7 +37,7 @@ Requires stable-diffusion-webui with enabled API.
   - Unlike FaceSwapLab and ReActor, FaceID supports various art styles such as cartoon, anime, etc.
   - Requires SD.Next.
   - The insightface, ip_adapter and onnxruntime-gpu PIP packages must be installed for SD.Next first.
-- [IP Adapters](https://github.com/vladmandic/automatic) 
+- [IP Adapter](https://github.com/vladmandic/automatic) 
   - Can be used to generate images based roughly on a base reference image.
   - Requires SD.Next.
   - The ip_adapter and onnxruntime-gpu PIP packages must be installed for SD.Next first.

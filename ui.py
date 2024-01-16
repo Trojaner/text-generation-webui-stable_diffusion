@@ -266,6 +266,7 @@ def _render_generation_parameters(params: Params) -> None:
                 minimum=1,
                 maximum=30,
                 elem_id="cfg_box",
+                step=0.5,
             )
             cfg_scale.change(
                 lambda new_cfg_scale: params.update({"cfg_scale": new_cfg_scale}),
@@ -325,7 +326,7 @@ def _render_generation_parameters(params: Params) -> None:
                 minimum=1,
                 maximum=4,
                 value=lambda: params.upscaling_scale,
-                step=0.1,
+                step=0.01,
             )
             hr_scale.change(
                 lambda new_value: params.update({"upscaling_scale": new_value}),
@@ -338,7 +339,7 @@ def _render_generation_parameters(params: Params) -> None:
                 minimum=0,
                 maximum=1,
                 value=lambda: params.hires_fix_denoising_strength,
-                step=0.05,
+                step=0.01,
             )
             hires_fix_denoising_strength.change(
                 lambda new_value: params.update(
@@ -412,7 +413,7 @@ def _render_reactor_config(params: Params) -> None:
 
 
 def _render_faceid_config(params: Params) -> None:
-    with gr.Accordion("FaceID", open=True, visible=sd_connected) as faceid_config:
+    with gr.Accordion("FaceID (SD.Next only)", open=True, visible=sd_connected) as faceid_config:  # noqa: E501
         connect_listeners.append(faceid_config)
 
         with gr.Column():
@@ -440,24 +441,64 @@ def _render_faceid_config(params: Params) -> None:
                 None,
             )
 
-            faceid_scale = gr.Slider(
-                label="Scale",
-                minimum=0,
-                maximum=1,
-                value=lambda: params.faceid_scale,
-                step=0.1,
+            faceid_mode = gr.CheckboxGroup(
+                label="Mode",
+                choices=["FaceID", "FaceSwap"],
+                value=lambda: params.faceid_mode,
             )
 
-            faceid_scale.change(
-                lambda new_scale: params.update({"faceid_scale": new_scale}),
-                faceid_scale,
+            faceid_mode.change(
+                lambda new_mode: params.update({"faceid_mode": new_mode}),
+                faceid_mode,
+                None,
+            )
+
+            faceid_model = gr.Dropdown(
+                label="Model",
+                choices=["FaceID Base", "FaceID Plus", "FaceID Plus v2", "FaceID XL"],
+                value=lambda: params.faceid_model,
+            )
+
+            faceid_model.change(
+                lambda new_model: params.update({"faceid_model": new_model}),
+                faceid_model,
+                None,
+            )
+
+            faceid_strength = gr.Slider(
+                label="Strength",
+                value=lambda: params.faceid_strength,
+                minimum=0,
+                maximum=2,
+                step=0.01,
+            )
+
+            faceid_strength.change(
+                lambda new_strength: params.update({"faceid_strength": new_strength}),
+                faceid_strength,
+                None,
+            )
+
+            faceid_structure = gr.Slider(
+                label="Structure",
+                value=lambda: params.faceid_structure,
+                minimum=0,
+                maximum=1,
+                step=0.01,
+            )
+
+            faceid_structure.change(
+                lambda new_structure: params.update(
+                    {"faceid_structure": new_structure}
+                ),
+                faceid_structure,
                 None,
             )
 
 
 def _render_ipadapter_config(params: Params) -> None:
     with gr.Accordion(
-        "IP Adapter", open=True, visible=sd_connected
+        "IP Adapter (SD.Next only)", open=True, visible=sd_connected
     ) as ipadapter_config:
         connect_listeners.append(ipadapter_config)
 
