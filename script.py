@@ -73,7 +73,7 @@ def custom_generate_chat_prompt(text: str, state: dict, **kwargs: dict) -> str:
 
         assert isinstance(description_prompt, str)
 
-        text = (
+        prompt = (
             description_prompt
             if ext_params.interactive_mode_prompt_generation_mode
             == InteractiveModePromptGenerationMode.DYNAMIC
