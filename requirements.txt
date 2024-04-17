@@ -5,3 +5,5 @@ Pillow
 types-Pillow
 types-requests
 stringcase
+partial-json-parser
+git+https://github.com/evanrichards/json-schema-logits-processor.git#egg=json-schema-logits-processor

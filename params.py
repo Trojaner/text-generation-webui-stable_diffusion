@@ -16,6 +16,7 @@ Do not write anything else. Do not ask any questions. Do not talk.
 
 
 class TriggerMode(str, Enum):
+    TOOL = "tool"
     CONTINUOUS = "continuous"
     INTERACTIVE = "interactive"
     MANUAL = "manual"
@@ -176,7 +177,9 @@ class RegexGenerationRule:
 @dataclass
 class UserPreferencesParams:
     save_images: bool = field(default=True)
-    trigger_mode: TriggerMode = field(default=TriggerMode.INTERACTIVE)
+    trigger_mode: TriggerMode = field(default=TriggerMode.TOOL)
+    tool_mode_force_json_output_enabled: bool = field(default=True)
+    tool_mode_force_json_output_schema: str = field(default="")
     interactive_mode_input_trigger_regex: str = field(
         default=".*(send|upload|add|show|attach|generate)\\b.+?\\b(image|pic(ture)?|photo|snap(shot)?|selfie|meme)(s?)"  # noqa E501
     )

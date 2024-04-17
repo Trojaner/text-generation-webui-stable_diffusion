@@ -3,6 +3,14 @@ import re
 from dataclasses import asdict
 from os import path
 from typing import Any, List
+from json_schema_logits_processor.json_schema_logits_processor import (
+    JsonSchemaLogitsProcessor,
+)
+from json_schema_logits_processor.schema.interative_schema import (
+    parse_schema_from_string,
+)
+from llama_cpp import LogitsProcessor
+from transformers import PreTrainedTokenizer
 from modules import chat, shared
 from modules.logging_colors import logger
 from .context import GenerationContext, get_current_context, set_current_context
@@ -23,8 +31,45 @@ context: GenerationContext | None = None
 
 picture_processing_message = "*Is sending a picture...*"
 default_processing_message = shared.processing_message
+cached_schema_text: str | None = None
+cached_schema_logits: LogitsProcessor | None = None
 
 EXTENSION_DIRECTORY_NAME = path.basename(path.dirname(path.realpath(__file__)))
+
+
+def get_or_create_context(state: dict | None = None) -> GenerationContext:
+    global context, params, ui_params
+
+    for key in ui_params.__dict__:
+        params[key] = ui_params.__dict__[key]
+
+    sd_client = SdWebUIApi(
+        baseurl=params["api_endpoint"],
+        username=params["api_username"],
+        password=params["api_password"],
+    )
+
+    if context is not None and not context.is_completed:
+        context.state = (context.state or {}) | (state or {})
+        context.sd_client = sd_client
+        return context
+
+    ext_params = StableDiffusionWebUiExtensionParams(**params)
+    ext_params.normalize()
+
+    context = (
+        GenerationContext(
+            params=ext_params,
+            sd_client=sd_client,
+            input_text=None,
+            state=state or {},
+        )
+        if context is None or context.is_completed
+        else context
+    )
+
+    set_current_context(context)
+    return context
 
 
 def custom_generate_chat_prompt(text: str, state: dict, **kwargs: dict) -> str:
@@ -37,69 +82,34 @@ def custom_generate_chat_prompt(text: str, state: dict, **kwargs: dict) -> str:
     # bug: this does not trigger on regeneration and hence
     # no context is created in that case
 
-    global context, params, ui_params
-
-    for key in ui_params.__dict__:
-        params[key] = ui_params.__dict__[key]
-
-    sd_client = SdWebUIApi(
-        baseurl=params["api_endpoint"],
-        username=params["api_username"],
-        password=params["api_password"],
-    )
-
-    prompt: str = chat.generate_chat_prompt(text, state, **kwargs)
+    prompt: str = chat.generate_chat_prompt(text, state, **kwargs)  # type: ignore
     input_text = text
 
-    if context is not None and not context.is_completed:
-        # A manual trigger was used so only update the context state
-        context.input_text = input_text
-        context.state = state
-        context.sd_client = sd_client
+    context = get_or_create_context(state)
+    context.input_text = input_text
+    context.state = state
+
+    if (
+        context is not None and not context.is_completed
+    ) or context.params.trigger_mode == TriggerMode.MANUAL:
+        # A manual trigger was used
         return prompt
 
-    ext_params = StableDiffusionWebUiExtensionParams(**params)
-    ext_params.normalize()
-
-    if ext_params.trigger_mode == TriggerMode.MANUAL:
-        return prompt
-
-    if ext_params.trigger_mode == TriggerMode.INTERACTIVE:
-        description_prompt = try_get_description_prompt(text, ext_params)
+    if context.params.trigger_mode == TriggerMode.INTERACTIVE:
+        description_prompt = try_get_description_prompt(text, context.params)
 
         if description_prompt is False:
-            # did not match trigger regex
+            # did not match image trigger
             return prompt
 
         assert isinstance(description_prompt, str)
 
         prompt = (
             description_prompt
-            if ext_params.interactive_mode_prompt_generation_mode
+            if context.params.interactive_mode_prompt_generation_mode
             == InteractiveModePromptGenerationMode.DYNAMIC
             else text
         )
-
-    context = (
-        GenerationContext(
-            params=ext_params,
-            sd_client=sd_client,
-            input_text=input_text,
-            state=state,
-        )
-        if context is None or context.is_completed
-        else context
-    )
-
-    set_current_context(context)
-
-    # todo: check if this can be set in state_modifier instead
-    # doesn't seem thread-safe either but it's related to upstream
-    shared.processing_message = (
-        picture_processing_message
-        if context.params.dont_stream_when_generating_images
-        else default_processing_message
-    )
 
     return prompt
 
@@ -110,18 +120,22 @@ def state_modifier(state: dict) -> dict:
     values in the UI like sliders and checkboxes.
     """
 
-    context = get_current_context()
+    context = get_or_create_context(state)
 
     if context is None or context.is_completed:
         return state
 
-    context.state = state
-
-    # bug: no context exists at this point and hence this never works
-    # need to initialize context earlier than in chat_input_modifier
-
-    if not context.is_completed and context.params.dont_stream_when_generating_images:
+    if (
+        context.params.trigger_mode == TriggerMode.TOOL
+        or context.params.dont_stream_when_generating_images
+    ):
         state["stream"] = False
+
+    shared.processing_message = (
+        picture_processing_message
+        if context.params.dont_stream_when_generating_images
+        else default_processing_message
+    )
 
     return state
 
@@ -207,17 +221,20 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
         return string
 
     try:
-        images_html, prompt, _, _, _ = generate_html_images_for_context(context)
+        string, images_html, prompt, _, _, _ = generate_html_images_for_context(context)
+        string = html.escape(string)
 
         if images_html:
-            if (
-                context.params.trigger_mode == TriggerMode.INTERACTIVE
-                and context.params.interactive_mode_prompt_generation_mode
-                == InteractiveModePromptGenerationMode.DYNAMIC
+            string = f"{string}\n\n{images_html}"
+            if prompt and (
+                context.params.trigger_mode == TriggerMode.TOOL
+                or (
+                    context.params.trigger_mode == TriggerMode.INTERACTIVE
+                    and context.params.interactive_mode_prompt_generation_mode
+                    == InteractiveModePromptGenerationMode.DYNAMIC
+                )
             ):
-                string = f"*{html.escape(prompt).strip()}*"
-
-            string = f"{images_html}\n{string}"
+                string = f"{string}\n*{html.escape(prompt).strip()}*"
 
     except Exception as e:
         string += "\n\n*Image generation has failed. Check logs for errors.*"
@@ -225,6 +242,50 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
 
     cleanup_context()
     return string
+
+
+def logits_processor_modifier(processor_list: List[LogitsProcessor], input_ids):
+    """
+    Adds logits processors to the list, allowing you to access and modify
+    the next token probabilities.
+    Only used by loaders that use the transformers library for sampling.
+    """
+
+    global cached_schema_text, cached_schema_logits
+    context = get_current_context()
+
+    if (
+        context is None
+        or context.is_completed
+        or context.params.trigger_mode != TriggerMode.TOOL
+        or not context.params.tool_mode_force_json_output_enabled
+        or not isinstance(shared.tokenizer, PreTrainedTokenizer)
+    ):
+        return processor_list
+
+    schema_text = context.params.tool_mode_force_json_output_schema or ""
+
+    if len(schema_text.strip()) == 0:
+        return processor_list
+
+    if cached_schema_text != schema_text or cached_schema_logits is None:
+        try:
+            schema = parse_schema_from_string(schema_text)
+        except Exception as e:
+            logger.error(
+                "Failed to parse JSON schema: %s,\nSchema: %s",
+                repr(e),
+                schema_text,
+                exc_info=True,
+            )
+
+        cached_schema_logits = JsonSchemaLogitsProcessor(schema, shared.tokenizer)  # type: ignore
+        cached_schema_text = schema_text
+
+    assert cached_schema_logits is not None, "cached_schema_logits is None"
+
+    processor_list.append(cached_schema_logits)
+    return processor_list
 
 
 def ui() -> None:

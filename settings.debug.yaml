@@ -53,10 +53,65 @@ stable_diffusion-debug_mode_enabled: true
 stable_diffusion-save_images: true
 
 ## Defines how image generation should be triggered. Possible values:
-##  - "continuous": Always generate images.
-##  - "interactive": Generate images only if a message with a triggering text was sent.
-##  - "manual": Generates images only if the image generation button was pressed. (WIP, not implemented yet)
-stable_diffusion-trigger_mode: "interactive"
+##  - "tool": Generate images using tool calls (requires special models and prompt modifications).
+## 
+##  This is overall the best and most accurate option, as the LLM model itself triggers and generates the prompt for image generation, 
+##    similar to how ChatGPT does it. This is also the only option that supports image generation while remembering the chat history. 
+#     However, it also the most difficult option to set up as it requires some special text generation models and some 
+##    minor system prompt adjustments.
+##
+##  Firstly you will need to use a model that supports function / tool calls like Command-R or Llama-2-chat-7b-hf-function-calling-v2. 
+##    This option works best with models that are compatible to OpenAI tools spec. Once you have a found a suitable model, define two 
+##    tools in your system prompt: add_text (with a "text" string parameter) and generate_image (with a "prompt" string parameter). Then 
+##    instruct your chatbot or character to use these tools whenever needed.
+##
+##  It is also highly recommended to either enable tool_mode_force_json_output_enabled or to force start the prompt directly in a JSON format
+##    like e.g. this start_with for Command-R:
+##
+##  start_with: |-
+##    Action: ```json
+##    [
+##          {
+##              "tool_name": "generate_image",
+##              "parameters": {
+##                    "prompt": "
+##
+##  Consult the documentation for your model for more information regarding how tool / function calls work, how tools are setup and
+##     what the response must start with. For Command-R, see https://docs.cohere.com/docs/prompting-command-r.
+##
+##  - "continuous": Generate images for all replies without any specific triggers. 
+##  This option supports including the output text as image generation prompt but will ignore any past chat history.
+##
+##  - "interactive": Generate images only if a message with a triggering text was sent or received. 
+##  This option supports including the output text as image generation prompt but will also ignore any past chat history.
+##
+##  - "manual": Generates images only if the image generation button was pressed.
+##  This option is currently not implemented and can be used as an off-switch until then.
+
+stable_diffusion-trigger_mode: "tool"
+
+## Forces model to output correct JSON for tool calls
+## Only works with transformers / HF based loaders, ignored if using a different loader
+stable_diffusion-tool_mode_force_json_output_enabled: true
+stable_diffusion-tool_mode_force_json_output_schema: |-
+  {
+    "type": "array", 
+    "items": {
+      "type": "object",
+      "properties": {
+        "tool_name": {
+          "type": "string",
+          "required": true
+        },
+        "parameters": {
+          "type": "object",
+          "required": true
+        }        
+      },
+      "additionalProperties": false
+    },
+    "minItems": 1
+  }
 
 ## Set's how the prompt for image generation should be generated. Possible values:
 ##  - "static": Uses the prompt option as-is ignoring any chat context.
