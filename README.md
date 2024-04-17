@@ -66,7 +66,7 @@ text-generation-webui, Visual Studio Code and Python 3.10 are required for devel
 ## Contribution Guidelines
 - This project relies heavily on type hints, please make sure to add them to your code as well or your pull request will likely get rejected.
 - Always reformat your code using [Black](https://github.com/psf/black) and [isort](https://github.com/PyCQA/isort) before committing (it should already do so when saving files if you have installed the recommended extensions).
-- Make sure that both, [mypy](https://github.com/python/mypy) and [flake8](https://github.com/PyCQA/flake8), are not outputting any linting errors.
+- Make sure that both, [pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance) and [flake8](https://github.com/PyCQA/flake8), are not outputting any linting errors.
 - Prefix local functions and variables with an underscore (`_`) to indicate that they are not meant to be used outside of the current file
 - Use snake case when naming functions and variables, pascal case when naming classes and uppercase for constants.
 - Do not use abbreviations for variable names (such as `ctx` instead of `context`) unless they are simple and common like `i` for index or `n` for number.

@@ -1,6 +1,6 @@
 [project]
 name = "stable_diffusion"
-version = "1.4"
+version = "1.6.1"
 authors = [{ name = "Enes Sadık Özbek", email = "es.ozbek@outlook.com" }]
 description = "Stable Diffusion integration for text-generation-webui"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -10,35 +10,18 @@ license = { file = "LICENSE" }
 [project.urls]
 Repository = "https://github.com/Trojaner/text-generation-webui-stable_diffusion"
 
-[tool.mypy]
-python_version = "3.10"
+[tool.pyright]
+typeCheckingMode = "standard"
+useLibraryCodeForTypes = true
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportPrivateImportUsage = false
+reportOptionalMemberAccess = false
+reportFunctionMemberAccess = true
+reportPossiblyUnboundVariable = true
+reportMissingModuleSource = false
 
-disallow_subclassing_any = false
-disallow_any_unimported = false
-disallow_any_generics = false
-disallow_untyped_imports = false
-ignore_missing_imports = true
-
-strict_optional = true
-show_error_codes = true
-show_column_numbers = true
-warn_no_return = true
-warn_unused_configs = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
-check_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_return_any = true
-implicit_reexport = true
-strict_equality = true
-
-[[tool.mypy.overrides]]
-module = ['modules.*', 'webuiapi.*']
-follow_imports = "skip"
-ignore_missing_imports = true
+pythonVersion = "3.10"
 
 [tool.isort]
 profile = "black"

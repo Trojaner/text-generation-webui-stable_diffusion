@@ -49,7 +49,7 @@ class SdWebUIApi(WebUIApi):
             f"{self.baseurl}/reload-checkpoint", "", use_async
         )
 
-    def txt2img(
+    def txt2img(  # type: ignore
         self,
         enable_hr: bool = False,
         denoising_strength: float = 0.7,
@@ -168,7 +168,6 @@ class SdWebUIApi(WebUIApi):
                 "tokens": faceid_tokens,
                 "cache_model": faceid_cache_model,
             }
-            
             print(json.dumps(payload["face_id"], indent=2))
 
         if alwayson_scripts:

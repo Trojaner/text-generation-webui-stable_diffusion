@@ -4,7 +4,6 @@
         "ms-python.flake8",
         "ms-python.isort",
         "magicstack.magicpython",
-        "ms-python.mypy-type-checker",
         "ms-python.vscode-pylance",
         "kevinrose.vsc-python-indent"
     ]

@@ -1,5 +1,5 @@
 webuiapi
-mypy
+pyright
 pylint
 Pillow
 types-Pillow

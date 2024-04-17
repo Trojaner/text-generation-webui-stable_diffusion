@@ -18,8 +18,8 @@ STATUS_SUCCESS = "#00FF00"
 STATUS_PROGRESS = "#FFFF00"
 STATUS_FAILURE = "#FF0000"
 
-refresh_listeners: List[gr.components.Component] = []
-connect_listeners: List[gr.components.Component] = []
+refresh_listeners: List[Any] = []
+connect_listeners: List[Any] = []
 
 status: gr.Label | None = None
 status_text: str = ""
@@ -152,7 +152,7 @@ def _render_models(params: Params) -> None:
 
             checkpoint = gr.Dropdown(
                 label="Checkpoint",
-                choices=sd_checkpoints,
+                choices=sd_checkpoints,  # type: ignore
                 value=lambda: sd_current_checkpoint,  # checkpoint is not defined in params # noqa: E501
             )
             checkpoint.change(
@@ -164,7 +164,7 @@ def _render_models(params: Params) -> None:
 
             vae = gr.Dropdown(
                 label="VAE",
-                choices=sd_vaes,
+                choices=sd_vaes + ['None'],  # type: ignore
                 value=lambda: sd_current_vae,  # vae is not defined in params
             )
             vae.change(
@@ -182,7 +182,7 @@ def _render_generation_parameters(params: Params) -> None:
         connect_listeners.append(generation_params)
 
         with gr.Row():
-            with gr.Row("Image size"):
+            with gr.Row():
                 width = gr.Number(
                     label="Width",
                     maximum=2048,
@@ -209,7 +209,7 @@ def _render_generation_parameters(params: Params) -> None:
                 with gr.Row(elem_id="sampler_row"):
                     sampler_name = gr.Dropdown(
                         label="Sampling method",
-                        choices=sd_samplers,
+                        choices=sd_samplers,  # type: ignore
                         value=lambda: params.sampler_name,
                         elem_id="sampler_box",
                     )
@@ -301,14 +301,14 @@ def _render_generation_parameters(params: Params) -> None:
             connect_listeners.append(hr_options)
 
             enable_hr.change(
-                lambda enabled: hr_options.update(visible=enabled, inputs=hr_options),
+                lambda enabled: hr_options.update(visible=enabled),
                 enable_hr,
                 hr_options,
             )
 
             hr_upscaler = gr.Dropdown(
                 label="Upscaler",
-                choices=sd_upscalers,
+                choices=sd_upscalers,  # type: ignore
                 value=lambda: params.upscaling_upscaler,
                 allow_custom_value=True,
             )
@@ -441,7 +441,7 @@ def _render_faceid_config(params: Params) -> None:
                 None,
             )
 
-            faceid_mode = gr.CheckboxGroup(
+            faceid_mode = gr.Dropdown(
                 label="Mode",
                 choices=["FaceID", "FaceSwap"],
                 value=lambda: params.faceid_mode,
@@ -633,9 +633,6 @@ def _render_status() -> None:
 def _refresh_sd_data(params: Params, force_refetch: bool = False) -> None:
     global sd_client, sd_connected, refresh_button
 
-    if refresh_button is not None:
-        refresh_button.update(interactive=False)
-
     sd_client = SdWebUIApi(
         baseurl=params.api_endpoint,
         username=params.api_username,
@@ -662,9 +659,6 @@ def _refresh_sd_data(params: Params, force_refetch: bool = False) -> None:
 
     for listener in connect_listeners:
         listener.update(visible=sd_connected)
-
-    if refresh_button is not None:
-        refresh_button.update(interactive=True)
 
     if not sd_connected:
         _set_status("Stable Diffusion WebUI connection failed", STATUS_FAILURE)
@@ -797,8 +791,4 @@ def _set_status(text: str, status_color: str) -> None:
     assert status is not None
 
     status_text = text
-    status.update(
-        value=f'<span id="status-text" style="color: {status_color};">{status_text}</span>',  # noqa: E501
-    )
-
     logger.info("[SD WebUI Integration] " + status_text)

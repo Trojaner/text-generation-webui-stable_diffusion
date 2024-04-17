@@ -304,6 +304,7 @@ def generate_html_images_for_context(
 
         from ..script import EXTENSION_DIRECTORY_NAME
 
+        image: Image.Image
         for image in response.images:
             if faceswaplab_force_enabled or (
                 faceswaplab_force_enabled is None and context.params.faceswaplab_enabled
@@ -329,7 +330,7 @@ def generate_html_images_for_context(
                         ),
                         use_async=False,
                     )
-                    image = response.image
+                    image = response.image  # type: ignore
                 except Exception as e:
                     logger.error(
                         "[SD WebUI Integration] FaceSwapLab failed to swap faces: %s",
@@ -359,7 +360,7 @@ def generate_html_images_for_context(
                         ),
                         use_async=False,
                     )
-                    image = response.image
+                    image = response.image  # type: ignore
                 except Exception as e:
                     logger.error(
                         "[SD WebUI Integration] ReActor failed to swap faces: %s",
@@ -386,7 +387,7 @@ def generate_html_images_for_context(
                 image_source = f"/file/{output_file}"
             else:
                 # resize image to avoid huge logs
-                image.thumbnail((512, 512 * image.height / image.width))
+                image.thumbnail((512, int(512 * image.height / image.width)))
 
                 buffered = io.BytesIO()
                 image.save(buffered, format="JPEG")
