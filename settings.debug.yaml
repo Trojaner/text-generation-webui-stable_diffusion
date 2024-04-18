@@ -92,7 +92,7 @@ stable_diffusion-trigger_mode: "tool"
 
 ## Forces model to output correct JSON for tool calls
 ## Only works with transformers / HF based loaders, ignored if using a different loader
-stable_diffusion-tool_mode_force_json_output_enabled: true
+stable_diffusion-tool_mode_force_json_output_enabled: false
 stable_diffusion-tool_mode_force_json_output_schema: |-
   {
     "type": "array", 
