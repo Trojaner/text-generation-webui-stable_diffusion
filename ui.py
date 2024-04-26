@@ -34,7 +34,7 @@ sd_current_checkpoint: str = ""
 sd_vaes: List[str] = []
 sd_current_vae: str = ""
 
-sd_connected: bool = False
+sd_connected: bool = True
 sd_options: Any = None
 
 
@@ -558,7 +558,7 @@ def _render_ipadapter_config(params: Params) -> None:
 
 
 def _render_chat_config(params: Params) -> None:
-    with gr.Accordion("Chat Settings", open=True, visible=sd_connected) as chat_config:
+    with gr.Accordion("Chat Settings", open=True, visible=True) as chat_config:
         connect_listeners.append(chat_config)
 
         with gr.Column():
@@ -658,7 +658,7 @@ def _refresh_sd_data(params: Params, force_refetch: bool = False) -> None:
         _fetch_vaes(sd_client)
 
     for listener in connect_listeners:
-        listener.update(visible=sd_connected)
+        listener.set_visibility(sd_connected)
 
     if not sd_connected:
         _set_status("Stable Diffusion WebUI connection failed", STATUS_FAILURE)
