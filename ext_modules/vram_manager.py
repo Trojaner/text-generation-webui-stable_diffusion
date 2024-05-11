@@ -1,7 +1,9 @@
 from enum import Enum
-from modules.models import reload_model, unload_model
+from modules.models import load_model, unload_model
 from ..context import GenerationContext
+import modules.shared as shared
 
+loaded_model = "None"
 
 class VramReallocationTarget(Enum):
     """
@@ -38,10 +40,12 @@ def _reallocate_vram_for_target(
 
 
 def _allocate_vram_for_stable_diffusion(context: GenerationContext) -> None:
+    global loaded_model
+    loaded_model = shared.model_name
     unload_model()
     context.sd_client.reload_checkpoint()
 
 
 def _allocate_vram_for_llm(context: GenerationContext) -> None:
     context.sd_client.unload_checkpoint()
-    reload_model()
+    load_model(loaded_model)
