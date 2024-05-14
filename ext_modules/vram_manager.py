@@ -1,5 +1,6 @@
 from enum import Enum
-from modules.models import load_model, unload_model
+from modules.logging_colors import logger
+from modules.models import load_model, unload_model, reload_model
 from ..context import GenerationContext
 import modules.shared as shared
 
@@ -41,11 +42,13 @@ def _reallocate_vram_for_target(
 
 def _allocate_vram_for_stable_diffusion(context: GenerationContext) -> None:
     global loaded_model
+    logger.info("SD Extension: unloading the LLM model for SD")
     loaded_model = shared.model_name
     unload_model()
     context.sd_client.reload_checkpoint()
 
 
 def _allocate_vram_for_llm(context: GenerationContext) -> None:
+    logger.info("SD Extension: unloading the SD model for LLM")
     context.sd_client.unload_checkpoint()
-    load_model(loaded_model)
+    shared.model, shared.tokenizer = load_model(loaded_model)
