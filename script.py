@@ -221,6 +221,7 @@ def output_modifier(string: str, state: dict, is_chat: bool = False) -> str:
         return string
 
     try:
+        context.output_text = string
         string, images_html, prompt, _, _, _ = generate_html_images_for_context(context)
         string = html.escape(string)
 
