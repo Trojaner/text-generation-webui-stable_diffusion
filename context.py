@@ -13,14 +13,12 @@ class GenerationContext(object):
     state: dict | None = None
 
 
-# Create a thread-local state for multi-threading support in case
-# multiple sessions run concurrently at the same time.
 _current_context: GenerationContext | None = None
 
 
 def get_current_context() -> GenerationContext | None:
     """
-    Gets the current generation context (thread-safe).
+    Gets the current generation context. Must be called inside a generation request.
     """
 
     return _current_context
@@ -28,7 +26,7 @@ def get_current_context() -> GenerationContext | None:
 
 def set_current_context(context: GenerationContext | None) -> None:
     """
-    Sets the current generation context (thread-safe).
+    Sets the current generation context. Must be called inside a generation request.
     """
 
     global _current_context
