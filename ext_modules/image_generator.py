@@ -222,7 +222,6 @@ def generate_html_images_for_context(
 
     if context.params.trigger_mode == TriggerMode.TOOL:
         output_text = html.unescape(output_text or "").strip()
-        logger.info("\n\noutput_text:\n%s\n\n", output_text)
 
         json_search = re.search(
             r"(\b)?([{\[].*[\]}])(\b)?", output_text, flags=re.I | re.M | re.S | re.U

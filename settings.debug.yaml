@@ -100,17 +100,15 @@ stable_diffusion-tool_mode_force_json_output_schema: |-
       "type": "object",
       "properties": {
         "tool_name": {
-          "type": "string",
-          "required": true
+          "type": "string"
         },
         "parameters": {
           "type": "object",
-          "required": true
+          "additionalProperties": {"type": "string"}
         }        
       },
-      "additionalProperties": false
-    },
-    "minItems": 1
+      "required": ["tool_name", "parameters"]
+    }
   }
 
 ## Set's how the prompt for image generation should be generated. Possible values:

@@ -3,14 +3,7 @@ import re
 from dataclasses import asdict
 from os import path
 from typing import Any, List
-from json_schema_logits_processor.json_schema_logits_processor import (
-    JsonSchemaLogitsProcessor,
-)
-from json_schema_logits_processor.schema.interative_schema import (
-    parse_schema_from_string,
-)
-from llama_cpp import LogitsProcessor
-from transformers import PreTrainedTokenizer
+from transformers import LogitsProcessor, PreTrainedTokenizerBase
 from modules import chat, shared
 from modules.logging_colors import logger
 from .context import GenerationContext, get_current_context, set_current_context
@@ -22,6 +15,7 @@ from .params import (
     TriggerMode,
 )
 from .sd_client import SdWebUIApi
+from .transformers_logits import JSONLogitsProcessor
 from .ui import render_ui
 
 ui_params: Any = StableDiffusionWebUiExtensionParams()
@@ -31,7 +25,7 @@ context: GenerationContext | None = None
 
 picture_processing_message = "*Is sending a picture...*"
 default_processing_message = shared.processing_message
-cached_schema_text: str | None = None
+cached_schema: str | None = None
 cached_schema_logits: LogitsProcessor | None = None
 
 EXTENSION_DIRECTORY_NAME = path.basename(path.dirname(path.realpath(__file__)))
@@ -252,7 +246,7 @@ def logits_processor_modifier(processor_list: List[LogitsProcessor], input_ids):
     Only used by loaders that use the transformers library for sampling.
     """
 
-    global cached_schema_text, cached_schema_logits
+    global cached_schema, cached_schema_logits
     context = get_current_context()
 
     if (
@@ -260,30 +254,27 @@ def logits_processor_modifier(processor_list: List[LogitsProcessor], input_ids):
         or context.is_completed
         or context.params.trigger_mode != TriggerMode.TOOL
         or not context.params.tool_mode_force_json_output_enabled
-        or not isinstance(shared.tokenizer, PreTrainedTokenizer)
+        or not isinstance(shared.tokenizer, PreTrainedTokenizerBase)
     ):
         return processor_list
 
-    schema_text = context.params.tool_mode_force_json_output_schema or ""
+    schema = context.params.tool_mode_force_json_output_schema or ""
 
-    if len(schema_text.strip()) == 0:
+    if len(schema.strip()) == 0:
         return processor_list
 
-    if cached_schema_text != schema_text or cached_schema_logits is None:
+    if cached_schema != schema or cached_schema_logits is None:
         try:
-            schema = parse_schema_from_string(schema_text)
+            cached_schema_logits = JSONLogitsProcessor(schema, shared.tokenizer)
+            cached_schema = schema
         except Exception as e:
             logger.error(
                 "Failed to parse JSON schema: %s,\nSchema: %s",
                 repr(e),
-                schema_text,
+                schema,
                 exc_info=True,
             )
-
-        cached_schema_logits = JsonSchemaLogitsProcessor(schema, shared.tokenizer)  # type: ignore
-        cached_schema_text = schema_text
-
-    assert cached_schema_logits is not None, "cached_schema_logits is None"
+            return processor_list
 
     processor_list.append(cached_schema_logits)
     return processor_list
