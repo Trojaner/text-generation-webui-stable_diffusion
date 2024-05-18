@@ -14,6 +14,7 @@ Requires stable-diffusion-webui with enabled API.
 
 > [!WARNING]  
 > This extension has been mainly developed with [SD.Next](https://github.com/vladmandic/automatic) instead of [AUTOMATIC1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui). Please report any potential bugs you come across when using AUTOMATIC1111 instead.  
+> You **MUST** use the `--api` CLI flag on AUTOMATIC1111 or this extension will not work.
 
 > [!NOTE]  
 > Some features, such as IP Adapter, FaceID and clip skip, are only available when using SD.Next.
